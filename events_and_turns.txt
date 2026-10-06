@@ -1,0 +1,105 @@
+# PROJECT EVENT & TURN LOG: TN CERTIFIED STAMP VENDOR RENTAL AGREEMENT PORTAL
+
+Generated at: 2026-10-06T09:23:34-07:00
+Applet ID: 0eee6c96-579a-4103-94d0-cb7944311b6a
+User: pradhiip92@gmail.com
+Firestore Database: ai-studio-instructionsumma-0eee6c96-579a-4103-94d0-cb7944311b6a
+
+================================================================================
+CHRONOLOGICAL SUMMARY OF TURNS & USER REQUESTS
+================================================================================
+
+[Turn 1] Initial project scaffolding & instructions summary
+- Read custom instructions and requirements for certified stamp paper vendor portal in Tamil Nadu.
+- Configured metadata.json and layout SEO metadata.
+
+[Turn 2] Public Pages & Core Structure
+- Next.js (App Router) server-side rendered public pages for SEO:
+  * Home (/)
+  * Rent Agreement Service (/rent-agreement)
+  * How It Works (/how-it-works)
+  * Pricing (/pricing) - Showing stamp duty, service fee, and courier charges separately
+  * FAQ (/faq)
+  * About (/about)
+  * Contact (/contact)
+  * Legal policies: Privacy Policy (/privacy-policy), Terms (/terms), Refund & Cancellation (/refund-policy), Disclaimer (/disclaimer)
+- Created i18n structure for future Tamil language support.
+
+[Turn 3] Firebase Setup & Security Rules
+- Firebase Terms accepted in UI.
+- Firestore database provisioned.
+- Initialized firebase-blueprint.json:
+  * Order entity (/orders/{orderId})
+  * Draft entity (/drafts/{uid})
+  * AdminLog entity (/adminLogs/{logId})
+- Configured firestore.rules and storage.rules:
+  * Only Google Auth sign-in for customers.
+  * Vendor admin access strictly via custom claim (request.auth.token.admin == true).
+  * Proofs private to owner and admin.
+  * Payment status set only server-side.
+  * Owner can only update order if status is 'Documents needed'.
+  * Client cannot edit payment, courier, or status fields.
+  * Drafts saved in /drafts/{uid} accessible solely to document owner.
+
+[Turn 4] Central Vendor Configuration
+- Created src/config/vendor.ts as single source of truth for vendor licence, shop address, contact info, working hours, and pricing.
+- Replaced unconfirmed claims/numbers with clearly marked placeholders (e.g. "[LICENCE NUMBER - TO BE PROVIDED BY VENDOR]").
+- Linked pricing page directly to config with separate stamp duty, vendor service fee, and courier fee breakdown.
+
+[Turn 5] Customer Order Intake Form (Steps 1 to 3)
+- Implemented multi-step customer form (/app/order/page.tsx, components/order/*):
+  * Step 1: Owner Details (Name, Father/Spouse name, Age >=18, 10-digit phone, email, Aadhaar last 4 digits only, optional PAN, permanent address).
+  * Step 2: Tenant Details (Same fields, Aadhaar last 4 digits only).
+  * Step 3: Property Details (Type: Flat/House/Shop, Furnishing: Unfurnished/Semi/Fully, complete premises address, City/Taluk in TN, 6-digit PIN code).
+  * Google Sign-in authentication gate.
+  * Live debounced autosave to Firestore at /drafts/{uid}.
+  * Progress indicator with step navigation and draft restore notification.
+  * Completed steps 1-3 summary review card.
+
+================================================================================
+TEXT GENERATED AFTER USER PROMPT (STEP 10 RESPONSE & REVIEW NOTES)
+================================================================================
+
+### Customer Order Intake Form (Steps 1 to 3) Built & Ready for Review
+
+The order intake flow has been built with Google Sign-in authentication, strict validation, and real-time autosave to Firestore:
+
+1. **Google Authentication Gate & Draft Restoration**:
+   - Requires customer Google sign-in before accessing the order form.
+   - Automatically pre-fills the owner's Google account email.
+   - Automatically loads any previously saved draft from Firestore at `/drafts/{uid}` on login, with a banner notifying the user that their draft was restored.
+
+2. **Step 1: Property Owner (Landlord) Details**:
+   - Full legal name, Father's / Spouse's name, Age (numeric validation, 18+).
+   - 10-digit Indian mobile number (`/^[6-9]\d{9}$/`), email address.
+   - **Aadhaar Privacy Safeguard**: Restricted strictly to the **last 4 digits only** (`XXXX - XXXX - [4 digits]`), enforced by input length and regex validation.
+   - Optional PAN validation (Indian PAN format: `ABCDE1234F`).
+   - Permanent residential address (minimum 10 characters).
+
+3. **Step 2: Tenant (Occupant) Details**:
+   - Full legal name, Father's / Spouse's name, Age (18+), phone, email.
+   - Aadhaar last 4 digits only with masked prefix.
+   - Optional PAN and permanent residential address.
+
+4. **Step 3: Rental Premises Details**:
+   - Property type selector (Flat / Independent House / Commercial Shop).
+   - Furnishing status (Unfurnished / Semi-Furnished / Fully-Furnished).
+   - Complete property address, City/Taluk in Tamil Nadu, and 6-digit Indian PIN code.
+
+5. **Progress Indicator & Firestore Draft Autosave (`/drafts/{uid}`)**:
+   - Clean 6-step progress indicator showing the current stage and accessible steps.
+   - Debounced autosave triggers on form input and step transitions directly to `/drafts/{uid}` in compliance with the security rules.
+   - Live status indicator shows draft state (`Saving...` / `Draft autosaved at [time]`).
+   - Discard draft button allows clearing the Firestore draft and starting fresh.
+   - Steps 1–3 completion summary review card allows editing any previous step before moving forward.
+
+================================================================================
+PENDING NEXT STEPS (AWAITING USER CONFIRMATION)
+================================================================================
+- Step 4: Agreement Terms (monthly rent, security deposit, maintenance charges, agreement start date, tenure in months, notice period, rent increase %).
+- Step 5: Uploads (owner ID proof, tenant ID proof, property proof: EB bill/tax receipt/sale deed copy; JPG, PNG, PDF; max 5 MB each).
+- Step 6: Review screen where customer can edit any answer.
+- Step 7: Razorpay payment creation & webhook verification.
+- Step 8: Confirmation page with order ID and receipt.
+- Order tracking page (/track) with order ID + phone verification.
+- Admin portal (/admin) with RBAC custom claim, status transitions, and audit logs.

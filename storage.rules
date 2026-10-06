@@ -1,0 +1,28 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Admin access strictly via custom claim: request.auth.token.admin == true
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    // Private customer proof documents
+    match /orders/{uid}/{orderId}/{file} {
+      // Readable only by the order owner or authenticated vendor admins
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+
+      // Uploads: authenticated owner only, size < 5 MB, JPG/PNG/PDF only
+      allow write: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*|application/pdf');
+
+      // Deletions: admin only
+      allow delete: if isAdmin();
+    }
+  }
+}

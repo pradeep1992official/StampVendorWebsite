@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Admin access strictly via custom claim: request.auth.token.admin == true
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    function isOwner() {
+      return isSignedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Owner correction logic:
+    // Can only be updated if existing status is 'Documents needed'
+    // Can only transition status to 'Under verification'
+    // Can only affect detail and proof fields (never payment, courier, etc.)
+    function isOwnerCorrectionUpdate() {
+      return isOwner()
+        && resource.data.status == 'Documents needed'
+        && request.resource.data.status == 'Under verification'
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.orderId == resource.data.orderId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.payment == resource.data.payment
+        && (!('courier' in resource.data) || request.resource.data.courier == resource.data.courier)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'ownerDetails',
+          'tenantDetails',
+          'propertyDetails',
+          'proofUploads',
+          'status',
+          'updatedAt'
+        ]);
+    }
+
+    // Default deny for all unmatched documents
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // In-progress customer draft forms: owner-only access
+    match /drafts/{uid} {
+      allow read, write, delete: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Orders Collection
+    match /orders/{orderId} {
+      // Create conditions:
+      // 1. Authenticated user matching ownerUid
+      // 2. Initial status must be 'Submitted'
+      // 3. Initial payment.status must be 'Pending' (server sets 'Paid' after Razorpay webhook)
+      // 4. Disallow courier and correctionMessage on initial creation
+      // 5. Restrict allowed payload keys using hasOnly()
+      allow create: if isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.status == 'Submitted'
+        && request.resource.data.payment.status == 'Pending'
+        && !('courier' in request.resource.data)
+        && !('correctionMessage' in request.resource.data)
+        && request.resource.data.keys().hasOnly([
+          'orderId',
+          'ownerUid',
+          'customerEmail',
+          'customerPhone',
+          'ownerDetails',
+          'tenantDetails',
+          'propertyDetails',
+          'agreementTerms',
+          'proofUploads',
+          'status',
+          'payment',
+          'notes',
+          'createdAt',
+          'updatedAt'
+        ]);
+
+      // Read access: owner or admin only
+      allow read: if isAdmin() || isOwner();
+
+      // Update access:
+      // - Admins can update orders (status, courier details, notes, correctionMessage)
+      // - Owners can ONLY update when status is 'Documents needed', to set 'Under verification', affecting only detail/proof fields
+      allow update: if isAdmin() || isOwnerCorrectionUpdate();
+
+      // Deletions: completely forbidden
+      allow delete: if false;
+    }
+
+    // Administrative activity audit logs: admin only
+    match /adminLogs/{logId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
