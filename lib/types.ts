@@ -36,7 +36,13 @@ export interface AgreementTerms {
   tenureMonths: number; // typically 11 months
   noticePeriodDays: number;
   rentIncreasePct: number;
+  paymentDueDay?: number; // e.g. 5th of every month
+  stampPaperDenomination?: 100 | 200; // 100 or 200 stamp paper
+  deliveryLocation?: 'Within Chennai' | 'Within Tamil Nadu';
+  includeNotary?: boolean;
 }
+
+export type { PricingConfig } from '@/src/config/pricing';
 
 export interface ProofUploads {
   ownerIdProofUrl?: string;

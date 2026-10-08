@@ -12,6 +12,7 @@ import {
 import { db, auth } from './firebase';
 import { Order, Draft, OrderStatus } from './types';
 import { handleFirestoreError, OperationType } from './firestore-errors';
+import { isUserAdmin } from '@/src/config/admin';
 
 /**
  * Draft Management (stored strictly in /drafts/{uid})
@@ -127,14 +128,9 @@ export async function submitDocumentCorrection(
 }
 
 /**
- * Check if the current user has the custom claim { admin: true }
+ * Check if the signed-in user is the authorized vendor administrator
  */
 export async function checkIsAdmin(): Promise<boolean> {
   if (!auth.currentUser) return false;
-  try {
-    const tokenResult = await auth.currentUser.getIdTokenResult(true);
-    return tokenResult.claims.admin === true;
-  } catch {
-    return false;
-  }
+  return isUserAdmin(auth.currentUser.email, auth.currentUser.emailVerified);
 }

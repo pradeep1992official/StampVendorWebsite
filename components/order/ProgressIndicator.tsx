@@ -18,14 +18,14 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
     { number: 1, label: 'Owner Details', shortLabel: 'Owner' },
     { number: 2, label: 'Tenant Details', shortLabel: 'Tenant' },
     { number: 3, label: 'Property Details', shortLabel: 'Property' },
-    { number: 4, label: 'Terms & Rent', shortLabel: 'Terms', disabled: true },
-    { number: 5, label: 'Proof Uploads', shortLabel: 'Proofs', disabled: true },
-    { number: 6, label: 'Review & Pay', shortLabel: 'Payment', disabled: true },
+    { number: 4, label: 'Agreement Terms', shortLabel: 'Terms' },
+    { number: 5, label: 'Proof Uploads', shortLabel: 'Proofs' },
+    { number: 6, label: 'Review & Pay', shortLabel: 'Review' },
   ];
 
   return (
     <div className="w-full">
-      {/* Mobile mini step header */}
+      {/* Mobile step label bar */}
       <div className="sm:hidden flex items-center justify-between mb-3 px-1 text-xs">
         <span className="font-bold text-stone-900">
           Step {currentStep} of 6: {steps[currentStep - 1]?.label}
@@ -41,7 +41,7 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
           {steps.map((st, idx) => {
             const isCompleted = currentStep > st.number;
             const isCurrent = currentStep === st.number;
-            const isClickable = !st.disabled && st.number <= maxAccessibleStep;
+            const isClickable = st.number <= maxAccessibleStep;
 
             return (
               <li key={st.number} className="relative flex-1 flex flex-col items-center group">
@@ -59,18 +59,16 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
                   type="button"
                   disabled={!isClickable}
                   onClick={() => isClickable && onStepClick && onStepClick(st.number)}
-                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
                     isCompleted
                       ? 'bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer shadow-xs'
                       : isCurrent
                       ? 'bg-amber-500 text-stone-950 ring-4 ring-amber-100 shadow-sm'
-                      : st.disabled
-                      ? 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed opacity-75'
                       : isClickable
                       ? 'bg-stone-100 text-stone-700 hover:bg-stone-200 cursor-pointer border border-stone-300'
                       : 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed'
                   }`}
-                  aria-label={`Go to step ${st.number}: ${st.label}`}
+                  aria-label={`Step ${st.number}: ${st.label}`}
                 >
                   {isCompleted ? <Check className="w-4 h-4 stroke-[3]" /> : st.number}
                 </button>

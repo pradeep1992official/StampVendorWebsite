@@ -10,23 +10,36 @@ import {
   AlertCircle, 
   LogIn, 
   Clock, 
-  Sparkles,
   FileCheck2,
-  Trash2
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { ProgressIndicator } from './ProgressIndicator';
 import { OwnerStep } from './OwnerStep';
 import { TenantStep } from './TenantStep';
 import { PropertyStep } from './PropertyStep';
-import { PersonDetails, PropertyDetails, Order } from '@/lib/types';
-import { saveDraft, getDraft, deleteDraft } from '@/lib/order-service';
+import { AgreementTermsStep } from './AgreementTermsStep';
+import { DocumentUploadsStep } from './DocumentUploadsStep';
+import { ReviewStep } from './ReviewStep';
+import { OrderConfirmation } from './OrderConfirmation';
+import { 
+  PersonDetails, 
+  PropertyDetails, 
+  AgreementTerms, 
+  ProofUploads, 
+  Order 
+} from '@/lib/types';
+import { saveDraft, getDraft, deleteDraft, createOrder } from '@/lib/order-service';
 
 export function OrderIntakeWizard() {
   const { user, loading: authLoading, signInWithGoogle } = useAuth();
 
+  // Wizard state
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [maxAccessibleStep, setMaxAccessibleStep] = useState<number>(1);
+  const [draftLoading, setDraftLoading] = useState<boolean>(false);
+  const [draftLoadError, setDraftLoadError] = useState<string | null>(null);
 
   // Form State
   const [ownerData, setOwnerData] = useState<Partial<PersonDetails>>({
@@ -59,6 +72,27 @@ export function OrderIntakeWizard() {
     furnishing: 'Semi-Furnished',
   });
 
+  const [termsData, setTermsData] = useState<Partial<AgreementTerms>>({
+    monthlyRent: undefined,
+    securityDeposit: undefined,
+    maintenanceCharges: 0,
+    startDate: '',
+    tenureMonths: 11,
+    noticePeriodDays: 30,
+    rentIncreasePct: 5,
+    paymentDueDay: 5,
+    stampPaperDenomination: 100,
+    deliveryLocation: 'Within Chennai',
+    includeNotary: false,
+  });
+
+  const [proofData, setProofData] = useState<Partial<ProofUploads>>({});
+
+  // Submission & Confirmed Order State
+  const [submittingOrder, setSubmittingOrder] = useState<boolean>(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
+
   // Validation Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -66,83 +100,233 @@ export function OrderIntakeWizard() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [draftRestoredBanner, setDraftRestoredBanner] = useState<boolean>(false);
-  const [hasCompletedStep3, setHasCompletedStep3] = useState<boolean>(false);
+  const [draftActionError, setDraftActionError] = useState<string | null>(null);
 
+  // References for robust debouncing and race-condition prevention
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const saveSequenceRef = useRef<number>(0);
+  const previousUidRef = useRef<string | null>(null);
+  const isDraftLoadedRef = useRef<boolean>(false);
 
-  // Prefill email from authenticated Google user
+  // Latest snapshot of all form data for timer callbacks
+  const latestDataRef = useRef({
+    ownerData,
+    tenantData,
+    propertyData,
+    termsData,
+    proofData,
+    currentStep,
+  });
+
   useEffect(() => {
-    if (user?.email && !ownerData.email) {
-      setOwnerData((prev) => ({ ...prev, email: user.email || '' }));
+    latestDataRef.current = {
+      ownerData,
+      tenantData,
+      propertyData,
+      termsData,
+      proofData,
+      currentStep,
+    };
+  }, [ownerData, tenantData, propertyData, termsData, proofData, currentStep]);
+
+  // Clean form state helper
+  const resetAllFormState = useCallback(() => {
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
     }
-  }, [user, ownerData.email]);
+    saveSequenceRef.current += 1;
+    isDraftLoadedRef.current = false;
 
-  // Load existing draft from /drafts/{uid} on auth ready
+    setOwnerData({
+      fullName: '',
+      relativeName: '',
+      age: '',
+      phone: '',
+      email: '',
+      aadhaarLast4: '',
+      pan: '',
+      address: '',
+    });
+    setTenantData({
+      fullName: '',
+      relativeName: '',
+      age: '',
+      phone: '',
+      email: '',
+      aadhaarLast4: '',
+      pan: '',
+      address: '',
+    });
+    setPropertyData({
+      fullAddress: '',
+      city: '',
+      pincode: '',
+      propertyType: 'Flat',
+      furnishing: 'Semi-Furnished',
+    });
+    setTermsData({
+      monthlyRent: undefined,
+      securityDeposit: undefined,
+      maintenanceCharges: 0,
+      startDate: '',
+      tenureMonths: 11,
+      noticePeriodDays: 30,
+      rentIncreasePct: 5,
+    });
+    setProofData({});
+    setCurrentStep(1);
+    setMaxAccessibleStep(1);
+    setErrors({});
+    setSaveStatus('idle');
+    setLastSavedTime(null);
+    setDraftRestoredBanner(false);
+    setDraftActionError(null);
+    setDraftLoadError(null);
+    setSubmissionError(null);
+    setConfirmedOrder(null);
+  }, []);
+
+  // Cleanup timers on unmount
   useEffect(() => {
-    if (!user) return;
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+      }
+    };
+  }, []);
 
-    let isMounted = true;
-    async function loadUserDraft() {
-      if (!user) return;
+  // Account change detection & clean draft loading
+  useEffect(() => {
+    const currentUid = user?.uid || null;
+
+    // Detect account switch or logout
+    if (previousUidRef.current !== currentUid) {
+      resetAllFormState();
+      previousUidRef.current = currentUid;
+    }
+
+    if (!user) return;
+    const uid = user.uid;
+    const userEmail = user.email || '';
+
+    let isSubscribed = true;
+    async function loadAccountDraft() {
+      setDraftLoading(true);
+      setDraftLoadError(null);
       try {
-        const draft = await getDraft(user.uid);
-        if (draft && draft.formData && isMounted) {
+        const draft = await getDraft(uid);
+        if (!isSubscribed) return;
+
+        if (draft && draft.formData) {
           const fd = draft.formData;
           if (fd.ownerDetails) setOwnerData(fd.ownerDetails);
+          else if (userEmail) setOwnerData((prev) => ({ ...prev, email: userEmail }));
+
           if (fd.tenantDetails) setTenantData(fd.tenantDetails);
           if (fd.propertyDetails) setPropertyData(fd.propertyDetails);
-          if (draft.currentStep && draft.currentStep <= 3) {
+          if (fd.agreementTerms) setTermsData(fd.agreementTerms);
+          if (fd.proofUploads) setProofData(fd.proofUploads);
+
+          if (draft.currentStep && draft.currentStep >= 1 && draft.currentStep <= 6) {
             setCurrentStep(draft.currentStep);
-            setMaxAccessibleStep(draft.currentStep);
+            setMaxAccessibleStep(Math.max(draft.currentStep, 1));
           }
+
           if (draft.updatedAt) {
-            setLastSavedTime(new Date(draft.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+            setLastSavedTime(
+              new Date(draft.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            );
             setDraftRestoredBanner(true);
           }
+        } else {
+          // If no previous draft, seed owner email with current Google account email
+          if (userEmail) {
+            setOwnerData((prev) => ({ ...prev, email: userEmail }));
+          }
         }
+        isDraftLoadedRef.current = true;
       } catch (err) {
-        console.error('Failed to load draft:', err);
+        if (isSubscribed) {
+          console.error('Failed to load user draft:', err);
+          setDraftLoadError('Could not load your saved draft. You can continue or retry.');
+        }
+      } finally {
+        if (isSubscribed) {
+          setDraftLoading(false);
+        }
       }
     }
 
-    loadUserDraft();
-    return () => { isMounted = false; };
-  }, [user]);
+    loadAccountDraft();
 
-  // Trigger autosave to /drafts/{uid}
-  const triggerAutosave = useCallback(async (stepToSave: number) => {
-    if (!user) return;
-    setSaveStatus('saving');
-    try {
-      const draftPayload: Partial<Order> = {
-        ownerDetails: ownerData as PersonDetails,
-        tenantDetails: tenantData as PersonDetails,
-        propertyDetails: propertyData as PropertyDetails,
-      };
-      await saveDraft(user.uid, stepToSave, draftPayload);
-      setSaveStatus('saved');
-      setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    } catch {
-      setSaveStatus('error');
-    }
-  }, [user, ownerData, tenantData, propertyData]);
+    return () => {
+      isSubscribed = false;
+    };
+  }, [user, resetAllFormState]);
 
-  // Debounced autosave when form changes
+  // Robust Save Function with Sequence Guard
+  const performSave = useCallback(
+    async (stepToSave: number) => {
+      if (!user || !isDraftLoadedRef.current) return;
+
+      const currentSeq = ++saveSequenceRef.current;
+      setSaveStatus('saving');
+
+      try {
+        const { ownerData: o, tenantData: t, propertyData: p, termsData: tm, proofData: pr } =
+          latestDataRef.current;
+
+        const draftPayload: Partial<Order> = {
+          ownerDetails: o as PersonDetails,
+          tenantDetails: t as PersonDetails,
+          propertyDetails: p as PropertyDetails,
+          agreementTerms: tm as AgreementTerms,
+          proofUploads: pr as ProofUploads,
+        };
+
+        await saveDraft(user.uid, stepToSave, draftPayload);
+
+        // Only update status if no newer save occurred while this request was flying
+        if (saveSequenceRef.current === currentSeq) {
+          setSaveStatus('saved');
+          setLastSavedTime(
+            new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          );
+        }
+      } catch (err) {
+        if (saveSequenceRef.current === currentSeq) {
+          setSaveStatus('error');
+          // Important: Clear last saved time on error to prevent displaying misleading earlier status
+          setLastSavedTime(null);
+        }
+      }
+    },
+    [user]
+  );
+
+  // Debounced autosave scheduler
   const scheduleAutosave = useCallback(() => {
-    if (!user) return;
+    if (!user || !isDraftLoadedRef.current) return;
+
     if (autosaveTimerRef.current) {
       clearTimeout(autosaveTimerRef.current);
     }
+
     autosaveTimerRef.current = setTimeout(() => {
-      triggerAutosave(currentStep);
-    }, 1000);
-  }, [user, currentStep, triggerAutosave]);
+      performSave(latestDataRef.current.currentStep);
+    }, 1200);
+  }, [user, performSave]);
 
   // Step 1 Validation (Owner)
   const validateOwner = (): boolean => {
     const errs: Record<string, string> = {};
-    if (!ownerData.fullName?.trim()) errs.fullName = 'Owner full name is required';
-    if (!ownerData.relativeName?.trim()) errs.relativeName = "Father's or spouse's name is required";
+    if (!ownerData.fullName?.trim() || ownerData.fullName.trim().length < 2) {
+      errs.fullName = 'Owner full legal name is required (minimum 2 characters)';
+    }
+    if (!ownerData.relativeName?.trim() || ownerData.relativeName.trim().length < 2) {
+      errs.relativeName = "Father's or spouse's name is required";
+    }
     if (!ownerData.age || Number(ownerData.age) < 18 || Number(ownerData.age) > 120) {
       errs.age = 'Owner must be at least 18 years of age';
     }
@@ -169,8 +353,12 @@ export function OrderIntakeWizard() {
   // Step 2 Validation (Tenant)
   const validateTenant = (): boolean => {
     const errs: Record<string, string> = {};
-    if (!tenantData.fullName?.trim()) errs.fullName = 'Tenant full name is required';
-    if (!tenantData.relativeName?.trim()) errs.relativeName = "Father's or spouse's name is required";
+    if (!tenantData.fullName?.trim() || tenantData.fullName.trim().length < 2) {
+      errs.fullName = 'Tenant full legal name is required (minimum 2 characters)';
+    }
+    if (!tenantData.relativeName?.trim() || tenantData.relativeName.trim().length < 2) {
+      errs.relativeName = "Father's or spouse's name is required";
+    }
     if (!tenantData.age || Number(tenantData.age) < 18 || Number(tenantData.age) > 120) {
       errs.age = 'Tenant must be at least 18 years of age';
     }
@@ -199,12 +387,51 @@ export function OrderIntakeWizard() {
     const errs: Record<string, string> = {};
     if (!propertyData.propertyType) errs.propertyType = 'Select property type';
     if (!propertyData.furnishing) errs.furnishing = 'Select furnishing status';
-    if (!propertyData.fullAddress?.trim() || propertyData.fullAddress.trim().length < 12) {
-      errs.fullAddress = 'Complete property address required (at least 12 characters)';
+    if (!propertyData.city?.trim() || propertyData.city.trim().length < 2) {
+      errs.city = 'City or Taluk in Tamil Nadu is required';
     }
-    if (!propertyData.city?.trim()) errs.city = 'City or Taluk in Tamil Nadu is required';
     if (!propertyData.pincode || !/^\d{6}$/.test(propertyData.pincode)) {
       errs.pincode = 'Valid 6-digit Indian pincode required';
+    }
+    if (!propertyData.fullAddress?.trim() || propertyData.fullAddress.trim().length < 12) {
+      errs.fullAddress = 'Complete premises address required (at least 12 characters)';
+    }
+
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  // Step 4 Validation (Agreement Terms)
+  const validateTerms = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!termsData.monthlyRent || Number(termsData.monthlyRent) <= 0) {
+      errs.monthlyRent = 'Monthly rent must be a positive amount';
+    }
+    if (termsData.securityDeposit === undefined || Number(termsData.securityDeposit) < 0) {
+      errs.securityDeposit = 'Security advance/deposit is required (enter 0 if none)';
+    }
+    if (!termsData.startDate) {
+      errs.startDate = 'Please select agreement commencement date';
+    }
+    if (!termsData.tenureMonths || Number(termsData.tenureMonths) < 1) {
+      errs.tenureMonths = 'Select tenancy tenure';
+    }
+
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  // Step 5 Validation (Proof Uploads)
+  const validateUploads = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!proofData.ownerIdProofFileName) {
+      errs.ownerIdProof = 'Please upload Landlord ID proof (Aadhaar/Voter ID/Passport)';
+    }
+    if (!proofData.tenantIdProofFileName) {
+      errs.tenantIdProof = 'Please upload Tenant ID proof (Aadhaar/Voter ID/DL)';
+    }
+    if (!proofData.propertyProofFileName) {
+      errs.propertyProof = 'Please upload Property premises proof (EB bill/Tax receipt/Deed copy)';
     }
 
     setErrors(errs);
@@ -214,34 +441,48 @@ export function OrderIntakeWizard() {
   const handleNext = () => {
     if (currentStep === 1) {
       if (!validateOwner()) return;
-      setCurrentStep(2);
-      setMaxAccessibleStep((prev) => Math.max(prev, 2));
-      triggerAutosave(2);
+      const next = 2;
+      setCurrentStep(next);
+      setMaxAccessibleStep((prev) => Math.max(prev, next));
+      performSave(next);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (currentStep === 2) {
       if (!validateTenant()) return;
-      setCurrentStep(3);
-      setMaxAccessibleStep((prev) => Math.max(prev, 3));
-      triggerAutosave(3);
+      const next = 3;
+      setCurrentStep(next);
+      setMaxAccessibleStep((prev) => Math.max(prev, next));
+      performSave(next);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (currentStep === 3) {
       if (!validateProperty()) return;
-      triggerAutosave(3);
-      setHasCompletedStep3(true);
+      const next = 4;
+      setCurrentStep(next);
+      setMaxAccessibleStep((prev) => Math.max(prev, next));
+      performSave(next);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (currentStep === 4) {
+      if (!validateTerms()) return;
+      const next = 5;
+      setCurrentStep(next);
+      setMaxAccessibleStep((prev) => Math.max(prev, next));
+      performSave(next);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (currentStep === 5) {
+      if (!validateUploads()) return;
+      const next = 6;
+      setCurrentStep(next);
+      setMaxAccessibleStep((prev) => Math.max(prev, next));
+      performSave(next);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleBack = () => {
-    if (hasCompletedStep3) {
-      setHasCompletedStep3(false);
-      return;
-    }
     if (currentStep > 1) {
-      const prevStep = currentStep - 1;
-      setCurrentStep(prevStep);
+      const prev = currentStep - 1;
+      setCurrentStep(prev);
       setErrors({});
-      triggerAutosave(prevStep);
+      performSave(prev);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -249,48 +490,100 @@ export function OrderIntakeWizard() {
   const handleClearDraft = async () => {
     if (!user) return;
     if (window.confirm('Are you sure you want to discard your saved draft and start fresh?')) {
-      await deleteDraft(user.uid);
-      setOwnerData({
-        fullName: '',
-        relativeName: '',
-        age: '',
-        phone: '',
-        email: user.email || '',
-        aadhaarLast4: '',
-        pan: '',
-        address: '',
-      });
-      setTenantData({
-        fullName: '',
-        relativeName: '',
-        age: '',
-        phone: '',
-        email: '',
-        aadhaarLast4: '',
-        pan: '',
-        address: '',
-      });
-      setPropertyData({
-        fullAddress: '',
-        city: '',
-        pincode: '',
-        propertyType: 'Flat',
-        furnishing: 'Semi-Furnished',
-      });
-      setCurrentStep(1);
-      setMaxAccessibleStep(1);
-      setDraftRestoredBanner(false);
-      setLastSavedTime(null);
-      setHasCompletedStep3(false);
+      try {
+        if (autosaveTimerRef.current) {
+          clearTimeout(autosaveTimerRef.current);
+          autosaveTimerRef.current = null;
+        }
+        await deleteDraft(user.uid);
+        resetAllFormState();
+        if (user.email) {
+          setOwnerData((prev) => ({ ...prev, email: user.email || '' }));
+        }
+      } catch (err) {
+        setDraftActionError('Failed to delete draft. Please check your internet connection.');
+      }
     }
   };
 
-  // If auth is still loading
-  if (authLoading) {
+  // Final Order Submission
+  const handleSubmitOrder = async () => {
+    if (!user) return;
+    setSubmissionError(null);
+
+    // Validate all sections before creating order
+    if (!validateOwner()) {
+      setCurrentStep(1);
+      return;
+    }
+    if (!validateTenant()) {
+      setCurrentStep(2);
+      return;
+    }
+    if (!validateProperty()) {
+      setCurrentStep(3);
+      return;
+    }
+    if (!validateTerms()) {
+      setCurrentStep(4);
+      return;
+    }
+    if (!validateUploads()) {
+      setCurrentStep(5);
+      return;
+    }
+
+    setSubmittingOrder(true);
+    try {
+      // Generate formatted order ID
+      const orderId = `TNR_${Date.now().toString().slice(-6)}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+      const orderPayload = {
+        orderId,
+        ownerUid: user.uid,
+        customerEmail: user.email || ownerData.email || '',
+        customerPhone: ownerData.phone,
+        ownerDetails: ownerData as PersonDetails,
+        tenantDetails: tenantData as PersonDetails,
+        propertyDetails: propertyData as PropertyDetails,
+        agreementTerms: termsData as AgreementTerms,
+        proofUploads: proofData as ProofUploads,
+      };
+
+      await createOrder(orderPayload);
+
+      // Successfully saved order
+      setConfirmedOrder({
+        ...orderPayload,
+        status: 'Submitted',
+        payment: { status: 'Pending' },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err: unknown) {
+      console.error('Order creation failed:', err);
+      setSubmissionError(
+        err instanceof Error ? err.message : 'Unable to register order. Please verify details and retry.'
+      );
+    } finally {
+      setSubmittingOrder(false);
+    }
+  };
+
+  // If order was confirmed, show the receipt confirmation screen
+  if (confirmedOrder) {
+    return <OrderConfirmation order={confirmedOrder} onStartNew={() => resetAllFormState()} />;
+  }
+
+  // Auth Loading
+  if (authLoading || draftLoading) {
     return (
-      <div className="max-w-3xl mx-auto py-16 px-4 text-center space-y-4">
+      <div className="max-w-3xl mx-auto py-20 px-4 text-center space-y-4">
         <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p className="text-xs text-stone-500 font-medium">Checking authentication status...</p>
+        <p className="text-xs text-stone-600 font-medium">
+          {authLoading ? 'Verifying authentication...' : 'Loading your saved application...'}
+        </p>
       </div>
     );
   }
@@ -306,18 +599,19 @@ export function OrderIntakeWizard() {
 
           <div className="space-y-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-3 py-1 rounded-full">
-              Authentication Required
+              Customer Sign-In
             </span>
             <h1 className="text-2xl font-black text-stone-900 tracking-tight">
-              Sign In to Start Your Agreement
+              Sign In to Start Your Rental Agreement
             </h1>
             <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
-              Sign in with your Google account. This enables <strong>automatic draft autosave</strong> to your secure account in Firestore (<code className="font-mono bg-stone-100 px-1 py-0.5 rounded text-[11px]">/drafts/{'{uid}'}</code>) so you never lose your progress.
+              Sign in with your Google account. Your application details are automatically autosaved to your private account so you never lose your progress.
             </p>
           </div>
 
           <div className="pt-2">
             <button
+              type="button"
               onClick={() => signInWithGoogle()}
               className="w-full flex items-center justify-center gap-3 bg-white border border-stone-300 hover:bg-stone-50 text-stone-800 font-bold py-3.5 px-6 rounded-2xl shadow-sm hover:shadow transition-all text-sm cursor-pointer"
             >
@@ -356,18 +650,18 @@ export function OrderIntakeWizard() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-      {/* Top Bar: Title & Autosave Pill */}
+      {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
-            Order Intake
+            Online Intake Desk
           </span>
           <h1 className="text-2xl font-black text-stone-900 mt-1">
             Rental Agreement Application
           </h1>
         </div>
 
-        {/* Autosave Indicator */}
+        {/* Live Autosave Status Indicator */}
         <div className="flex items-center gap-2 self-start sm:self-auto text-xs">
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stone-100 border border-stone-200 text-stone-600">
             {saveStatus === 'saving' ? (
@@ -375,11 +669,23 @@ export function OrderIntakeWizard() {
                 <div className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></div>
                 <span className="font-medium text-[11px]">Saving draft...</span>
               </>
-            ) : saveStatus === 'saved' || lastSavedTime ? (
+            ) : saveStatus === 'saved' && lastSavedTime ? (
               <>
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="font-medium text-[11px]">Draft autosaved {lastSavedTime && `at ${lastSavedTime}`}</span>
+                <span className="font-medium text-[11px]">Draft autosaved at {lastSavedTime}</span>
               </>
+            ) : saveStatus === 'error' ? (
+              <div className="flex items-center gap-1.5 text-rose-600">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span className="font-medium text-[11px]">Save failed</span>
+                <button
+                  type="button"
+                  onClick={() => performSave(currentStep)}
+                  className="font-bold underline text-[11px] text-rose-800 hover:text-rose-900 cursor-pointer ml-1"
+                >
+                  Retry
+                </button>
+              </div>
             ) : (
               <>
                 <Save className="w-3.5 h-3.5 text-stone-400" />
@@ -391,8 +697,9 @@ export function OrderIntakeWizard() {
           <button
             type="button"
             onClick={handleClearDraft}
-            title="Discard draft and start fresh"
+            title="Discard saved draft and start fresh"
             className="p-1.5 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-stone-100 transition-colors cursor-pointer"
+            aria-label="Discard draft"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -404,9 +711,10 @@ export function OrderIntakeWizard() {
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs text-amber-950">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-700 shrink-0" />
-            <span>Resumed your saved draft from Firestore (<code className="font-mono text-[11px]">/drafts/{user.uid}</code>).</span>
+            <span>Resumed your saved draft. Your previous entries have been restored.</span>
           </div>
           <button
+            type="button"
             onClick={() => setDraftRestoredBanner(false)}
             className="text-amber-800 font-bold hover:underline shrink-0 text-xs cursor-pointer"
           >
@@ -415,22 +723,42 @@ export function OrderIntakeWizard() {
         </div>
       )}
 
+      {/* Action / Load Error Banners */}
+      {(draftActionError || draftLoadError) && (
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs text-rose-900">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{draftActionError || draftLoadError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setDraftActionError(null);
+              setDraftLoadError(null);
+            }}
+            className="text-rose-800 font-bold hover:underline shrink-0 cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Progress Indicator */}
       <ProgressIndicator
-        currentStep={hasCompletedStep3 ? 4 : currentStep}
+        currentStep={currentStep}
         onStepClick={(s) => {
-          if (s <= 3) {
-            setHasCompletedStep3(false);
+          if (s <= maxAccessibleStep) {
             setCurrentStep(s);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
           }
         }}
         maxAccessibleStep={maxAccessibleStep}
       />
 
-      {/* Main Form Card */}
+      {/* Main Step Body Card */}
       <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm">
         {/* Step 1: Owner */}
-        {currentStep === 1 && !hasCompletedStep3 && (
+        {currentStep === 1 && (
           <OwnerStep
             data={ownerData}
             onChange={(fields) => {
@@ -443,7 +771,7 @@ export function OrderIntakeWizard() {
         )}
 
         {/* Step 2: Tenant */}
-        {currentStep === 2 && !hasCompletedStep3 && (
+        {currentStep === 2 && (
           <TenantStep
             data={tenantData}
             onChange={(fields) => {
@@ -456,7 +784,7 @@ export function OrderIntakeWizard() {
         )}
 
         {/* Step 3: Property */}
-        {currentStep === 3 && !hasCompletedStep3 && (
+        {currentStep === 3 && (
           <PropertyStep
             data={propertyData}
             onChange={(fields) => {
@@ -468,132 +796,68 @@ export function OrderIntakeWizard() {
           />
         )}
 
-        {/* Completed Steps 1-3 Summary Review Screen (Waiting for User Confirmation) */}
-        {hasCompletedStep3 && (
-          <div className="space-y-6 animate-in fade-in duration-150">
-            <div className="border-b border-stone-200 pb-4">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-stone-900">Steps 1 to 3 Complete</h2>
-                  <p className="text-xs text-stone-500">Your details have been validated and saved to <code className="font-mono text-emerald-800">/drafts/{user.uid}</code>.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Summary Grid */}
-            <div className="space-y-4 text-xs sm:text-sm">
-              {/* Owner Summary */}
-              <div className="bg-stone-50 rounded-2xl p-4 border border-stone-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-stone-900 text-sm">1. Property Owner (Landlord)</h3>
-                  <button
-                    onClick={() => {
-                      setHasCompletedStep3(false);
-                      setCurrentStep(1);
-                    }}
-                    className="text-amber-800 font-bold hover:underline text-xs cursor-pointer"
-                  >
-                    Edit Step 1
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-stone-600">
-                  <div><strong>Name:</strong> {ownerData.fullName}</div>
-                  <div><strong>Father/Spouse:</strong> {ownerData.relativeName}</div>
-                  <div><strong>Age:</strong> {ownerData.age} yrs</div>
-                  <div><strong>Phone:</strong> {ownerData.phone}</div>
-                  <div><strong>Email:</strong> {ownerData.email}</div>
-                  <div><strong>Aadhaar:</strong> XXXX-XXXX-{ownerData.aadhaarLast4}</div>
-                  {ownerData.pan && <div><strong>PAN:</strong> {ownerData.pan}</div>}
-                  <div className="col-span-2"><strong>Permanent Address:</strong> {ownerData.address}</div>
-                </div>
-              </div>
-
-              {/* Tenant Summary */}
-              <div className="bg-stone-50 rounded-2xl p-4 border border-stone-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-stone-900 text-sm">2. Tenant (Occupant)</h3>
-                  <button
-                    onClick={() => {
-                      setHasCompletedStep3(false);
-                      setCurrentStep(2);
-                    }}
-                    className="text-amber-800 font-bold hover:underline text-xs cursor-pointer"
-                  >
-                    Edit Step 2
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-stone-600">
-                  <div><strong>Name:</strong> {tenantData.fullName}</div>
-                  <div><strong>Father/Spouse:</strong> {tenantData.relativeName}</div>
-                  <div><strong>Age:</strong> {tenantData.age} yrs</div>
-                  <div><strong>Phone:</strong> {tenantData.phone}</div>
-                  <div><strong>Email:</strong> {tenantData.email}</div>
-                  <div><strong>Aadhaar:</strong> XXXX-XXXX-{tenantData.aadhaarLast4}</div>
-                  {tenantData.pan && <div><strong>PAN:</strong> {tenantData.pan}</div>}
-                  <div className="col-span-2"><strong>Permanent Address:</strong> {tenantData.address}</div>
-                </div>
-              </div>
-
-              {/* Property Summary */}
-              <div className="bg-stone-50 rounded-2xl p-4 border border-stone-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-stone-900 text-sm">3. Rental Property</h3>
-                  <button
-                    onClick={() => {
-                      setHasCompletedStep3(false);
-                      setCurrentStep(3);
-                    }}
-                    className="text-amber-800 font-bold hover:underline text-xs cursor-pointer"
-                  >
-                    Edit Step 3
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-stone-600">
-                  <div><strong>Type:</strong> {propertyData.propertyType}</div>
-                  <div><strong>Furnishing:</strong> {propertyData.furnishing}</div>
-                  <div><strong>City:</strong> {propertyData.city}</div>
-                  <div><strong>Pincode:</strong> {propertyData.pincode}</div>
-                  <div className="col-span-2"><strong>Premises Address:</strong> {propertyData.fullAddress}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Waiting for Next Step Notice */}
-            <div className="bg-amber-50 border border-amber-300 rounded-2xl p-5 text-xs text-amber-950 space-y-2">
-              <div className="flex items-center gap-2 font-bold text-sm text-amber-900">
-                <Clock className="w-4 h-4 text-amber-700" />
-                <span>Ready for Review</span>
-              </div>
-              <p className="leading-relaxed">
-                Steps 1 to 3 have been completed with Google Authentication, client-side input validation, and live Firestore autosave to <code className="font-mono bg-amber-100 px-1 py-0.5 rounded">/drafts/{user.uid}</code>.
-              </p>
-              <p className="leading-relaxed">
-                Per the workflow guidelines, I am stopping here for your review and confirmation before building the subsequent steps (Step 4: Agreement Terms, Step 5: Document Uploads, Step 6: Review & Razorpay payment).
-              </p>
-            </div>
-          </div>
+        {/* Step 4: Agreement Terms */}
+        {currentStep === 4 && (
+          <AgreementTermsStep
+            data={termsData}
+            onChange={(fields) => {
+              setTermsData((prev) => ({ ...prev, ...fields }));
+              setErrors({});
+              scheduleAutosave();
+            }}
+            errors={errors}
+          />
         )}
 
-        {/* Navigation Buttons */}
-        <div className="mt-8 pt-6 border-t border-stone-200 flex items-center justify-between gap-4">
-          <div>
-            {(currentStep > 1 || hasCompletedStep3) && (
-              <button
-                type="button"
-                onClick={handleBack}
-                className="px-5 py-2.5 rounded-xl border border-stone-300 hover:bg-stone-50 text-stone-700 font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back</span>
-              </button>
-            )}
-          </div>
+        {/* Step 5: Document Uploads */}
+        {currentStep === 5 && (
+          <DocumentUploadsStep
+            data={proofData}
+            uid={user.uid}
+            onChange={(fields) => {
+              setProofData((prev) => ({ ...prev, ...fields }));
+              setErrors({});
+              scheduleAutosave();
+            }}
+            errors={errors}
+          />
+        )}
 
-          <div>
-            {!hasCompletedStep3 ? (
+        {/* Step 6: Review & Final Submission */}
+        {currentStep === 6 && (
+          <ReviewStep
+            ownerData={ownerData}
+            tenantData={tenantData}
+            propertyData={propertyData}
+            termsData={termsData}
+            proofData={proofData}
+            onEditStep={(s) => {
+              setCurrentStep(s);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onSubmitOrder={handleSubmitOrder}
+            submitting={submittingOrder}
+            submissionError={submissionError}
+          />
+        )}
+
+        {/* Wizard Navigation Buttons (for Steps 1 to 5) */}
+        {currentStep < 6 && (
+          <div className="mt-8 pt-6 border-t border-stone-200 flex items-center justify-between gap-4">
+            <div>
+              {currentStep > 1 && (
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="px-5 py-2.5 rounded-xl border border-stone-300 hover:bg-stone-50 text-stone-700 font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back</span>
+                </button>
+              )}
+            </div>
+
+            <div>
               <button
                 type="button"
                 onClick={handleNext}
@@ -602,13 +866,15 @@ export function OrderIntakeWizard() {
                 <span>
                   {currentStep === 1 && 'Next: Tenant Details'}
                   {currentStep === 2 && 'Next: Property Details'}
-                  {currentStep === 3 && 'Complete Steps 1-3 & Review'}
+                  {currentStep === 3 && 'Next: Agreement Terms'}
+                  {currentStep === 4 && 'Next: Document Uploads'}
+                  {currentStep === 5 && 'Next: Review & Confirm'}
                 </span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-            ) : null}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

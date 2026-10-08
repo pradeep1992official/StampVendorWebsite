@@ -5,24 +5,41 @@ service firebase.storage {
       return request.auth != null;
     }
 
-    // Admin access strictly via custom claim: request.auth.token.admin == true
+    // Admin access strictly via verified administrator email
     function isAdmin() {
-      return isSignedIn() && request.auth.token.admin == true;
+      return isSignedIn()
+        && request.auth.token.email == "pradhiip92@gmail.com"
+        && request.auth.token.email_verified == true;
     }
 
     // Private customer proof documents
+    // Structure: /orders/{uid}/{orderId}/{file} or /drafts/{uid}/{file}
     match /orders/{uid}/{orderId}/{file} {
       // Readable only by the order owner or authenticated vendor admins
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
 
-      // Uploads: authenticated owner only, size < 5 MB, JPG/PNG/PDF only
-      allow write: if isSignedIn()
+      // Explicitly allow only JPEG, PNG, and PDF up to 5 MB
+      allow create: if isSignedIn()
         && request.auth.uid == uid
-        && request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*|application/pdf');
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/jpeg|image/png|application/pdf');
+
+      // Update allowed only by admin or by owner if corrections are being submitted
+      allow update: if isSignedIn()
+        && (request.auth.uid == uid || isAdmin())
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/jpeg|image/png|application/pdf');
 
       // Deletions: admin only
       allow delete: if isAdmin();
+    }
+
+    // In-progress customer draft uploads
+    match /drafts/{uid}/{file} {
+      allow read, write, delete: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/jpeg|image/png|application/pdf');
     }
   }
 }

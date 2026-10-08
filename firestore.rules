@@ -6,9 +6,11 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Admin access strictly via custom claim: request.auth.token.admin == true
+    // Admin access strictly via verified administrator email
     function isAdmin() {
-      return isSignedIn() && request.auth.token.admin == true;
+      return isSignedIn()
+        && request.auth.token.email == "pradhiip92@gmail.com"
+        && request.auth.token.email_verified == true;
     }
 
     function isOwner() {
@@ -32,6 +34,7 @@ service cloud.firestore {
           'ownerDetails',
           'tenantDetails',
           'propertyDetails',
+          'agreementTerms',
           'proofUploads',
           'status',
           'updatedAt'
@@ -43,9 +46,44 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Contact enquiries
+    match /enquiries/{enquiryId} {
+      // Anyone can submit a valid enquiry
+      allow create: if request.resource.data.keys().hasOnly([
+          'enquiryId',
+          'name',
+          'phone',
+          'district',
+          'message',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.phone is string
+        && request.resource.data.phone.size() == 10
+        && request.resource.data.message is string
+        && request.resource.data.message.size() >= 5
+        && request.resource.data.message.size() <= 1000
+        && request.resource.data.status == 'New';
+
+      // Read, update, and delete reserved exclusively for vendor admin
+      allow read, update, delete: if isAdmin();
+    }
+
     // In-progress customer draft forms: owner-only access
     match /drafts/{uid} {
-      allow read, write, delete: if isSignedIn() && request.auth.uid == uid;
+      allow read, delete: if isSignedIn() && request.auth.uid == uid;
+      allow write: if isSignedIn() 
+        && request.auth.uid == uid
+        && request.resource.data.ownerUid == uid
+        && request.resource.data.keys().hasOnly([
+          'ownerUid',
+          'currentStep',
+          'formData',
+          'updatedAt'
+        ]);
     }
 
     // Orders Collection
@@ -83,7 +121,7 @@ service cloud.firestore {
       allow read: if isAdmin() || isOwner();
 
       // Update access:
-      // - Admins can update orders (status, courier details, notes, correctionMessage)
+      // - Admins can update orders (status, courier details, notes, correctionMessage, payment)
       // - Owners can ONLY update when status is 'Documents needed', to set 'Under verification', affecting only detail/proof fields
       allow update: if isAdmin() || isOwnerCorrectionUpdate();
 
@@ -94,6 +132,12 @@ service cloud.firestore {
     // Administrative activity audit logs: admin only
     match /adminLogs/{logId} {
       allow read, write: if isAdmin();
+    }
+
+    // System & Pricing Settings (accessible to all for checkout, updatable by admin only)
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

@@ -8,6 +8,7 @@ import {
   signOut as firebaseSignOut 
 } from 'firebase/auth';
 import { auth, googleProvider } from './firebase';
+import { isUserAdmin } from '@/src/config/admin';
 
 interface AuthContextType {
   user: User | null;
@@ -34,12 +35,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        try {
-          const tokenResult = await currentUser.getIdTokenResult();
-          setIsAdmin(tokenResult.claims.admin === true);
-        } catch {
-          setIsAdmin(false);
-        }
+        // Vendor admin is authorized when email matches designated admin email and is verified
+        setIsAdmin(isUserAdmin(currentUser.email, currentUser.emailVerified));
       } else {
         setIsAdmin(false);
       }

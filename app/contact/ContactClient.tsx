@@ -8,6 +8,8 @@ import {
   Clock, 
   Send, 
   CheckCircle2, 
+  AlertCircle,
+  RefreshCw,
   ShieldCheck
 } from 'lucide-react';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
@@ -15,7 +17,6 @@ import { DisclaimerBanner } from '@/components/DisclaimerBanner';
 import { VENDOR_CONFIG } from '@/src/config/vendor';
 
 export function ContactClient() {
-  const [formSubmitted, setFormSubmitted] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -23,10 +24,70 @@ export function ContactClient() {
     message: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [enquirySuccess, setEnquirySuccess] = useState<{ id: string; name: string; phone: string } | null>(null);
+
+  const validate = () => {
+    const errs: Record<string, string> = {};
+    if (!formData.name.trim() || formData.name.trim().length < 2) {
+      errs.name = 'Please enter your full name (minimum 2 characters)';
+    }
+    const cleanPhone = formData.phone.replace(/[^0-9]/g, '');
+    if (!cleanPhone || !/^[6-9]\d{9}$/.test(cleanPhone)) {
+      errs.phone = 'Please enter a valid 10-digit Indian mobile number (starts with 6-9)';
+    }
+    if (!formData.message.trim() || formData.message.trim().length < 5) {
+      errs.message = 'Please enter your query (at least 5 characters)';
+    }
+    setFormErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone) return;
-    setFormSubmitted(true);
+    setServerError(null);
+
+    if (!validate()) return;
+
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          phone: formData.phone.trim(),
+          district: formData.district.trim(),
+          message: formData.message.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to submit enquiry. Please try again.');
+      }
+
+      // Show success ONLY after persistence succeeded
+      setEnquirySuccess({
+        id: data.enquiryId,
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
+      });
+    } catch (err: unknown) {
+      setServerError(err instanceof Error ? err.message : 'Network error occurred. Please retry.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReset = () => {
+    setEnquirySuccess(null);
+    setServerError(null);
+    setFormErrors({});
+    setFormData({ name: '', phone: '', district: '', message: '' });
   };
 
   const rawPhone = VENDOR_CONFIG.phone.replace(/[^0-9+]/g, '');
@@ -133,94 +194,156 @@ export function ContactClient() {
                 <p className="text-xs text-stone-600">Our stamp vendor desk will review your question and respond promptly.</p>
               </div>
 
-              {formSubmitted ? (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center space-y-3">
+              {enquirySuccess ? (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center space-y-3 animate-in fade-in">
                   <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
-                  <h3 className="font-bold text-emerald-900 text-base">Enquiry Received</h3>
+                  <h3 className="font-bold text-emerald-900 text-base">Enquiry Successfully Recorded</h3>
+                  <p className="text-xs text-emerald-800 font-mono">Reference ID: {enquirySuccess.id}</p>
                   <p className="text-xs text-emerald-700 max-w-md mx-auto leading-relaxed">
-                    Thank you, {formData.name}. Your note has been received and our desk will contact you at {formData.phone} shortly.
+                    Thank you, <strong>{enquirySuccess.name}</strong>. Your enquiry has been safely stored in our system. Our desk will contact you at <strong>{enquirySuccess.phone}</strong> during working hours.
                   </p>
                   <button
-                    onClick={() => {
-                      setFormSubmitted(false);
-                      setFormData({ name: '', phone: '', district: '', message: '' });
-                    }}
+                    onClick={handleReset}
                     className="text-xs font-semibold text-emerald-800 hover:underline pt-2 cursor-pointer"
                   >
                     Send another query
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                  {serverError && (
+                    <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-start justify-between gap-3" role="alert">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                        <span>{serverError}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSubmit}
+                        className="font-bold underline text-rose-900 shrink-0 hover:text-rose-950 flex items-center gap-1 cursor-pointer"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Retry</span>
+                      </button>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      <label htmlFor="contact-name" className="block text-xs font-semibold text-stone-700 mb-1">
                         Your Full Name *
                       </label>
                       <input
+                        id="contact-name"
                         type="text"
                         required
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, name: e.target.value });
+                          if (formErrors.name) setFormErrors({ ...formErrors, name: '' });
+                        }}
+                        aria-invalid={!!formErrors.name}
+                        aria-describedby={formErrors.name ? 'contact-name-error' : undefined}
                         placeholder="e.g. S. Ramanathan"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className={`w-full px-3.5 py-2.5 rounded-xl border text-xs text-stone-900 focus:outline-none focus:ring-2 ${
+                          formErrors.name ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/40' : 'border-stone-300 focus:ring-amber-500 bg-white'
+                        }`}
                       />
+                      {formErrors.name && (
+                        <p id="contact-name-error" className="text-[11px] text-rose-600 mt-1">{formErrors.name}</p>
+                      )}
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1">
+                      <label htmlFor="contact-phone" className="block text-xs font-semibold text-stone-700 mb-1">
                         Phone / WhatsApp Number *
                       </label>
                       <input
+                        id="contact-phone"
                         type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
                         required
                         value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, phone: e.target.value.replace(/[^0-9]/g, '') });
+                          if (formErrors.phone) setFormErrors({ ...formErrors, phone: '' });
+                        }}
+                        aria-invalid={!!formErrors.phone}
+                        aria-describedby={formErrors.phone ? 'contact-phone-error' : undefined}
                         placeholder="10-digit mobile number"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className={`w-full px-3.5 py-2.5 rounded-xl border text-xs text-stone-900 focus:outline-none focus:ring-2 ${
+                          formErrors.phone ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/40' : 'border-stone-300 focus:ring-amber-500 bg-white'
+                        }`}
                       />
+                      {formErrors.phone && (
+                        <p id="contact-phone-error" className="text-[11px] text-rose-600 mt-1">{formErrors.phone}</p>
+                      )}
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      Rental Property District in Tamil Nadu
+                    <label htmlFor="contact-district" className="block text-xs font-semibold text-stone-700 mb-1">
+                      Rental Property District in Tamil Nadu (Optional)
                     </label>
                     <input
+                      id="contact-district"
                       type="text"
                       value={formData.district}
                       onChange={(e) => setFormData({ ...formData, district: e.target.value })}
                       placeholder="e.g. Chennai, Madurai, Coimbatore, Salem..."
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-stone-700 mb-1">
-                      Your Query or Tenancy Details
+                    <label htmlFor="contact-message" className="block text-xs font-semibold text-stone-700 mb-1">
+                      Your Query or Tenancy Details *
                     </label>
                     <textarea
+                      id="contact-message"
                       rows={4}
+                      required
                       value={formData.message}
-                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, message: e.target.value });
+                        if (formErrors.message) setFormErrors({ ...formErrors, message: '' });
+                      }}
+                      aria-invalid={!!formErrors.message}
+                      aria-describedby={formErrors.message ? 'contact-message-error' : undefined}
                       placeholder="Tell us about your rental agreement query..."
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className={`w-full px-3.5 py-2.5 rounded-xl border text-xs text-stone-900 focus:outline-none focus:ring-2 ${
+                        formErrors.message ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/40' : 'border-stone-300 focus:ring-amber-500 bg-white'
+                      }`}
                     ></textarea>
+                    {formErrors.message && (
+                      <p id="contact-message-error" className="text-[11px] text-rose-600 mt-1">{formErrors.message}</p>
+                    )}
                   </div>
 
                   <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/80 text-[11px] text-stone-500 flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Your contact details are strictly confidential and will never be shared with third parties.</span>
+                    <span>Your contact details are strictly confidential and recorded directly into our private vendor desk database.</span>
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-stone-900 hover:bg-stone-800 text-white font-semibold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+                    disabled={submitting}
+                    className="w-full bg-stone-900 hover:bg-stone-800 disabled:bg-stone-400 text-white font-semibold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
                   >
-                    <Send className="w-4 h-4" />
-                    <span>Send Query to Vendor Desk</span>
+                    {submitting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Saving Enquiry to Vendor Desk...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>Send Query to Vendor Desk</span>
+                      </>
+                    )}
                   </button>
                 </form>
               )}

@@ -35,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({ onStartAgreement }) => {
     { label: t.nav.faq, href: '/faq' },
     { label: t.nav.about, href: '/about' },
     { label: t.nav.contact, href: '/contact' },
+    { label: t.nav.trackOrder, href: '/track' },
   ];
 
   const toggleLanguage = () => {
@@ -127,16 +128,24 @@ export const Header: React.FC<HeaderProps> = ({ onStartAgreement }) => {
           <div className="hidden sm:flex items-center gap-3">
             {/* User Account / Sign In Status */}
             {user ? (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-stone-800 border border-stone-700 text-xs">
-                <User className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-stone-200 font-medium max-w-[120px] truncate">{user.displayName || user.email}</span>
-                <button
-                  onClick={() => signOut()}
-                  title="Sign Out"
-                  className="text-stone-400 hover:text-rose-400 p-0.5 cursor-pointer ml-1"
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/my-orders"
+                  className="px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 border border-stone-700 text-xs text-stone-200 font-medium transition-colors"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
+                  My Orders
+                </Link>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-stone-800 border border-stone-700 text-xs">
+                  <User className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-stone-200 font-medium max-w-[110px] truncate">{user.displayName || user.email}</span>
+                  <button
+                    onClick={() => signOut()}
+                    title="Sign Out"
+                    className="text-stone-400 hover:text-rose-400 p-0.5 cursor-pointer ml-1"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             ) : null}
 

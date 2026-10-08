@@ -4,6 +4,8 @@
  * Placeholders are marked clearly with bracket notation [PLACEHOLDER - DESCRIPTION].
  */
 
+export { ADMIN_EMAIL, isUserAdmin } from './admin';
+
 export interface VendorFees {
   stampDuty: {
     amount: number | null; // null until formula/rule is provided
@@ -46,19 +48,19 @@ export interface VendorConfig {
 }
 
 export const VENDOR_CONFIG: VendorConfig = {
-  name: '[VENDOR NAME - TO BE PROVIDED BY VENDOR]',
-  tradeName: '[SHOP / FIRM NAME - TO BE PROVIDED BY VENDOR]',
-  licenceNumber: '[LICENCE NUMBER - TO BE PROVIDED BY VENDOR]',
+  name: 'SAIRAM NET CENTER',
+  tradeName: 'SAIRAM NET',
+  licenceNumber: 'TNCHN2026-52-9852',
   issuingAuthority: '[REGISTRATION DEPARTMENT JURISDICTION - TO BE PROVIDED BY VENDOR]',
   addressLine1: '[SHOP ADDRESS LINE 1 - TO BE PROVIDED BY VENDOR]',
   addressLine2: '[SHOP ADDRESS LINE 2 - TO BE PROVIDED BY VENDOR]',
-  city: '[CITY - TO BE PROVIDED BY VENDOR]',
-  pincode: '[PINCODE - TO BE PROVIDED BY VENDOR]',
+  city: 'CHENNAI',
+  pincode: '600014',
   state: 'Tamil Nadu, India',
-  phone: '[PHONE NUMBER - TO BE PROVIDED BY VENDOR]',
-  whatsappNumber: '[WHATSAPP NUMBER - TO BE PROVIDED BY VENDOR]',
+  phone: '9843216587',
+  whatsappNumber: '8144404504',
   whatsappPrefilledMessage: 'Hello, I would like to inquire about rental agreement drafting on stamp paper.',
-  email: '[EMAIL ADDRESS - TO BE PROVIDED BY VENDOR]',
+  email: 'pradhiip92@gmail.com',
   workingHours: '[WORKING HOURS - TO BE PROVIDED BY VENDOR]',
   fees: {
     stampDuty: {
