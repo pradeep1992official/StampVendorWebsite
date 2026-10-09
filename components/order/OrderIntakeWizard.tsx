@@ -20,7 +20,6 @@ import { OwnerStep } from './OwnerStep';
 import { TenantStep } from './TenantStep';
 import { PropertyStep } from './PropertyStep';
 import { AgreementTermsStep } from './AgreementTermsStep';
-import { DocumentUploadsStep } from './DocumentUploadsStep';
 import { ReviewStep } from './ReviewStep';
 import { OrderConfirmation } from './OrderConfirmation';
 import { 
@@ -435,23 +434,6 @@ export function OrderIntakeWizard() {
     return Object.keys(errs).length === 0;
   };
 
-  // Step 5 Validation (Proof Uploads)
-  const validateUploads = (): boolean => {
-    const errs: Record<string, string> = {};
-    if (!proofData.ownerIdProofFileName) {
-      errs.ownerIdProof = 'Please upload Landlord ID proof (Aadhaar/Voter ID/Passport)';
-    }
-    if (!proofData.tenantIdProofFileName) {
-      errs.tenantIdProof = 'Please upload Tenant ID proof (Aadhaar/Voter ID/DL)';
-    }
-    if (!proofData.propertyProofFileName) {
-      errs.propertyProof = 'Please upload Property premises proof (EB bill/Tax receipt/Deed copy)';
-    }
-
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
-
   const handleNext = () => {
     if (currentStep === 1) {
       if (!validateOwner()) return;
@@ -477,13 +459,6 @@ export function OrderIntakeWizard() {
     } else if (currentStep === 4) {
       if (!validateTerms()) return;
       const next = 5;
-      setCurrentStep(next);
-      setMaxAccessibleStep((prev) => Math.max(prev, next));
-      performSave(next);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (currentStep === 5) {
-      if (!validateUploads()) return;
-      const next = 6;
       setCurrentStep(next);
       setMaxAccessibleStep((prev) => Math.max(prev, next));
       performSave(next);
@@ -540,10 +515,6 @@ export function OrderIntakeWizard() {
     }
     if (!validateTerms()) {
       setCurrentStep(4);
-      return;
-    }
-    if (!validateUploads()) {
-      setCurrentStep(5);
       return;
     }
 
@@ -839,22 +810,8 @@ export function OrderIntakeWizard() {
           />
         )}
 
-        {/* Step 5: Document Uploads */}
+        {/* Step 5: Review & Final Submission */}
         {currentStep === 5 && (
-          <DocumentUploadsStep
-            data={proofData}
-            uid={user.uid}
-            onChange={(fields) => {
-              setProofData((prev) => ({ ...prev, ...fields }));
-              setErrors({});
-              scheduleAutosave();
-            }}
-            errors={errors}
-          />
-        )}
-
-        {/* Step 6: Review & Final Submission */}
-        {currentStep === 6 && (
           <ReviewStep
             ownerData={ownerData}
             tenantData={tenantData}
@@ -871,8 +828,8 @@ export function OrderIntakeWizard() {
           />
         )}
 
-        {/* Wizard Navigation Buttons (for Steps 1 to 5) */}
-        {currentStep < 6 && (
+        {/* Wizard Navigation Buttons (for Steps 1 to 4) */}
+        {currentStep < 5 && (
           <div className="mt-8 pt-6 border-t border-stone-200 flex items-center justify-between gap-4">
             <div>
               {currentStep > 1 && (
@@ -897,8 +854,7 @@ export function OrderIntakeWizard() {
                   {currentStep === 1 && 'Next: Tenant Details'}
                   {currentStep === 2 && 'Next: Property Details'}
                   {currentStep === 3 && 'Next: Agreement Terms'}
-                  {currentStep === 4 && 'Next: Document Uploads'}
-                  {currentStep === 5 && 'Next: Review & Confirm'}
+                  {currentStep === 4 && 'Next: Review & Confirm'}
                 </span>
                 <ArrowRight className="w-4 h-4" />
               </button>

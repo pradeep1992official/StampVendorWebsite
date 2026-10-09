@@ -19,8 +19,7 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
     { number: 2, label: 'Tenant Details', shortLabel: 'Tenant' },
     { number: 3, label: 'Property Details', shortLabel: 'Property' },
     { number: 4, label: 'Agreement Terms', shortLabel: 'Terms' },
-    { number: 5, label: 'Proof Uploads', shortLabel: 'Proofs' },
-    { number: 6, label: 'Review & Pay', shortLabel: 'Review' },
+    { number: 5, label: 'Review & Pay', shortLabel: 'Review' },
   ];
 
   return (
@@ -28,10 +27,10 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
       {/* Mobile step label bar */}
       <div className="sm:hidden flex items-center justify-between mb-3 px-1 text-xs">
         <span className="font-bold text-stone-900">
-          Step {currentStep} of 6: {steps[currentStep - 1]?.label}
+          Step {currentStep} of 5: {steps[currentStep - 1]?.label}
         </span>
         <span className="text-amber-800 font-mono text-[11px] bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-          {Math.round((currentStep / 6) * 100)}%
+          {Math.round((currentStep / 5) * 100)}%
         </span>
       </div>
 

@@ -25,13 +25,13 @@ export default function HowItWorksPage() {
     {
       num: '01',
       icon: <FileText className="w-6 h-6 text-amber-700" />,
-      title: 'Submit Agreement & Proof Details Online',
-      desc: 'Fill our clean, mobile-first form with Owner, Tenant, and Property details. Upload ID proofs and property address proof (EB Bill or Property Tax). Providing an Aadhaar number is optional.',
+      title: 'Submit Agreement Details Online',
+      desc: 'Fill our clean, mobile-first form with Owner, Tenant, and Property details. Providing an Aadhaar number is optional.',
       details: [
         'Owner & Tenant full name, father/spouse name, age, phone & email',
-        'Government ID proof (Aadhaar optional, Voter ID, PAN, or Passport)',
+        'Identification details (Aadhaar optional, Voter ID, PAN, or Passport)',
         'Monthly rent, security deposit, notice period & tenure',
-        'Clear JPG, PNG, or PDF proof uploads up to 5 MB',
+        'Fast 4-step intake flow with instant draft review',
       ],
     },
     {

@@ -155,15 +155,9 @@ export const PropertyStep: React.FC<PropertyStepProps> = ({ data, onChange, erro
             }`}
           />
           {errors.pincode && <p id="property-pincode-error" className="text-xs text-rose-600 mt-1">{errors.pincode}</p>}
-          {!errors.pincode && data.pincode && data.pincode.length === 6 && isChennaiPincode(data.pincode) && (
-            <p className="text-[11px] text-emerald-700 font-semibold mt-1 flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Chennai Region PIN — auto-selecting Within Chennai (Rs. 350 package)</span>
-            </p>
-          )}
-          {!errors.pincode && data.pincode && data.pincode.length === 6 && !isChennaiPincode(data.pincode) && /^6\d{5}$/.test(data.pincode) && (
+          {!errors.pincode && data.pincode && data.pincode.length === 6 && (
             <p className="text-[11px] text-stone-600 font-medium mt-1">
-              Tamil Nadu District PIN — auto-selecting Within Tamilnadu (Rs. 400 package)
+              {isChennaiPincode(data.pincode) ? 'Chennai, Tamilnadu' : 'Tamilnadu, India'}
             </p>
           )}
         </div>

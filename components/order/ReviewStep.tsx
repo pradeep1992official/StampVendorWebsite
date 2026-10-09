@@ -23,7 +23,7 @@ interface ReviewStepProps {
   tenantData: Partial<PersonDetails>;
   propertyData: Partial<PropertyDetails>;
   termsData: Partial<AgreementTerms>;
-  proofData: Partial<ProofUploads>;
+  proofData?: Partial<ProofUploads>;
   onEditStep: (stepNumber: number) => void;
   onSubmitOrder: () => Promise<void>;
   submitting: boolean;
@@ -170,7 +170,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-stone-900">Step 6: Review & Application Submission</h2>
+              <h2 className="text-xl font-bold text-stone-900">Step 5: Review & Application Submission</h2>
               <p className="text-xs text-stone-500">
                 Carefully review all submitted tenancy details before placing your order.
               </p>
@@ -334,35 +334,6 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
               <strong className={termsData.includeNotary ? 'text-amber-700' : 'text-stone-700'}>
                 {termsData.includeNotary ? 'With Notary Signature & Seal (+₹200)' : 'Without Notary Signature'}
               </strong>
-            </div>
-          </div>
-        </div>
-
-        {/* 5. Document Uploads */}
-        <div className="bg-white border border-stone-200 rounded-2xl p-4 sm:p-5 space-y-3">
-          <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
-            <h3 className="font-bold text-stone-900 text-sm">5. Uploaded Proof Documents</h3>
-            <button
-              type="button"
-              onClick={() => onEditStep(5)}
-              className="text-xs font-semibold text-amber-800 hover:text-amber-900 flex items-center gap-1 cursor-pointer"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>Edit Step 5</span>
-            </button>
-          </div>
-          <div className="space-y-1.5 text-xs text-stone-700">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Owner ID: <strong>{proofData.ownerIdProofFileName || 'Uploaded'}</strong></span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Tenant ID: <strong>{proofData.tenantIdProofFileName || 'Uploaded'}</strong></span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Property Proof: <strong>{proofData.propertyProofFileName || 'Uploaded'}</strong></span>
             </div>
           </div>
         </div>
