@@ -39,6 +39,7 @@ export interface AgreementTerms {
   rentIncreasePct: number;
   paymentDueDay?: number; // e.g. 5th of every month
   stampPaperDenomination?: 100 | 200; // 100 or 200 stamp paper
+  deliveryRecipient?: 'Owner' | 'Tenant';
   deliveryLocation?: 'Within Chennai' | 'Within Tamil Nadu';
   includeNotary?: boolean;
 }

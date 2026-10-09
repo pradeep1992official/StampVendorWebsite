@@ -5,20 +5,26 @@ import { FileText, IndianRupee, Calendar, Truck, Stamp, CheckCircle2 } from 'luc
 import { AgreementTerms } from '@/lib/types';
 import { DEFAULT_PRICING, PricingConfig, calculateOrderPrice } from '@/src/config/pricing';
 import { getPricingConfig } from '@/lib/pricing-service';
-import { isChennaiPincode } from '@/lib/pincode-utils';
+import { detectCourierRegion } from '@/lib/pincode-utils';
 
 interface AgreementTermsStepProps {
   data: Partial<AgreementTerms>;
   onChange: (fields: Partial<AgreementTerms>) => void;
   errors: Record<string, string>;
-  propertyPincode?: string;
+  ownerAddress?: string;
+  ownerName?: string;
+  tenantAddress?: string;
+  tenantName?: string;
 }
 
 export const AgreementTermsStep: React.FC<AgreementTermsStepProps> = ({
   data,
   onChange,
   errors,
-  propertyPincode,
+  ownerAddress,
+  ownerName,
+  tenantAddress,
+  tenantName,
 }) => {
   const [pricingConfig, setPricingConfig] = useState<PricingConfig>(DEFAULT_PRICING);
 
@@ -35,8 +41,23 @@ export const AgreementTermsStep: React.FC<AgreementTermsStepProps> = ({
   }, []);
 
   const stampPaper = data.stampPaperDenomination === 200 ? 200 : 100;
-  const location = data.deliveryLocation === 'Within Tamil Nadu' ? 'Within Tamil Nadu' : 'Within Chennai';
+  const selectedDeliveryAddress = data.deliveryRecipient === 'Owner'
+    ? ownerAddress
+    : data.deliveryRecipient === 'Tenant'
+      ? tenantAddress
+      : undefined;
+  const detectedDeliveryLocation = detectCourierRegion({ address: selectedDeliveryAddress });
+  const location = detectedDeliveryLocation ?? data.deliveryLocation ?? 'Within Chennai';
   const hasNotary = Boolean(data.includeNotary);
+
+  useEffect(() => {
+    if (
+      detectedDeliveryLocation &&
+      detectedDeliveryLocation !== data.deliveryLocation
+    ) {
+      onChange({ deliveryLocation: detectedDeliveryLocation });
+    }
+  }, [data.deliveryLocation, detectedDeliveryLocation, onChange]);
 
   const priceBreakdown = calculateOrderPrice(pricingConfig, stampPaper, location, hasNotary);
 
@@ -218,7 +239,7 @@ export const AgreementTermsStep: React.FC<AgreementTermsStepProps> = ({
           <select
             id="terms-escalation"
             required
-            value={data.rentIncreasePct || 5}
+            value={data.rentIncreasePct ?? 5}
             onChange={(e) => onChange({ rentIncreasePct: Number(e.target.value) })}
             className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
           >
@@ -229,7 +250,7 @@ export const AgreementTermsStep: React.FC<AgreementTermsStepProps> = ({
           </select>
         </div>
 
-        {/* ================= THREE PRICE DROPBOXES ================= */}
+        {/* ================= PACKAGE AND DELIVERY OPTIONS ================= */}
         <div className="sm:col-span-2 pt-4 border-t border-stone-200">
           <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 sm:p-5 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200/70 pb-3">
@@ -238,7 +259,7 @@ export const AgreementTermsStep: React.FC<AgreementTermsStepProps> = ({
                   Official Stamping & Delivery Selection
                 </span>
                 <h3 className="font-bold text-stone-900 text-sm mt-1">
-                  Choose Stamp Paper, Courier Region & Notary Signature
+                  Choose Delivery Address, Stamp Paper, Courier Region & Notary Signature
                 </h3>
               </div>
               <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100/90 px-3 py-1.5 rounded-xl shrink-0 border border-emerald-300 shadow-2xs">
@@ -248,11 +269,50 @@ export const AgreementTermsStep: React.FC<AgreementTermsStepProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-              {/* Dropdown 1: Stamp Paper Denomination */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              {/* Dropdown 1: Delivery Recipient */}
+              <div>
+                <label htmlFor="terms-deliveryRecipient" className="block text-xs font-bold text-stone-800 mb-1">
+                  1. Deliver To *
+                </label>
+                <select
+                  id="terms-deliveryRecipient"
+                  value={data.deliveryRecipient || ''}
+                  onChange={(e) => {
+                    const deliveryRecipient = e.target.value as 'Owner' | 'Tenant';
+                    const address = deliveryRecipient === 'Owner' ? ownerAddress : tenantAddress;
+                    const deliveryLocation = detectCourierRegion({ address });
+                    onChange({
+                      deliveryRecipient,
+                      ...(deliveryLocation ? { deliveryLocation } : {}),
+                    });
+                  }}
+                  aria-invalid={!!errors.deliveryRecipient}
+                  aria-describedby={errors.deliveryRecipient ? 'terms-deliveryRecipient-error' : undefined}
+                  className={`w-full px-3 py-2.5 rounded-xl border bg-white text-xs font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer ${
+                    errors.deliveryRecipient ? 'border-rose-400' : 'border-stone-300'
+                  }`}
+                >
+                  <option value="">Select recipient</option>
+                  <option value="Owner">Property owner{ownerName ? ` — ${ownerName}` : ''}</option>
+                  <option value="Tenant">Tenant{tenantName ? ` — ${tenantName}` : ''}</option>
+                </select>
+                {selectedDeliveryAddress && (
+                  <p className="text-[11px] text-stone-600 mt-1 truncate" title={selectedDeliveryAddress}>
+                    {selectedDeliveryAddress}
+                  </p>
+                )}
+                {errors.deliveryRecipient && (
+                  <p id="terms-deliveryRecipient-error" className="text-xs text-rose-600 mt-1">
+                    {errors.deliveryRecipient}
+                  </p>
+                )}
+              </div>
+
+              {/* Dropdown 2: Stamp Paper Denomination */}
               <div>
                 <label htmlFor="terms-stampPaper" className="block text-xs font-bold text-stone-800 mb-1">
-                  1. Stamp Paper *
+                  2. Stamp Paper *
                 </label>
                 <select
                   id="terms-stampPaper"
@@ -265,62 +325,39 @@ export const AgreementTermsStep: React.FC<AgreementTermsStepProps> = ({
                   <option value={100}>In Rs.100 Stamp Paper</option>
                   <option value={200}>In Rs.200 Stamp Paper</option>
                 </select>
-                <p className="text-[11px] text-stone-500 mt-1">
-                  {stampPaper === 100 
-                    ? `Chennai: ₹${pricingConfig.stamp100Chennai}/- • Within Tamilnadu: ₹${pricingConfig.stamp100TamilNadu}/-` 
-                    : `Chennai: ₹${pricingConfig.stamp200Chennai}/- • Within Tamilnadu: ₹${pricingConfig.stamp200TamilNadu}/-`}
-                </p>
               </div>
 
-              {/* Dropdown 2: Delivery Location */}
+              {/* Dropdown 3: Delivery Location */}
               <div>
                 <label htmlFor="terms-deliveryLocation" className="block text-xs font-bold text-stone-800 mb-1">
-                  2. Courier Region *
+                  3. Courier Region
                 </label>
-                <select
+                <div
                   id="terms-deliveryLocation"
-                  value={location}
-                  onChange={(e) =>
-                    onChange({
-                      deliveryLocation: e.target.value as 'Within Chennai' | 'Within Tamil Nadu',
-                    })
-                  }
-                  className="w-full px-3 py-2.5 rounded-xl border border-stone-300 bg-white text-xs font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                  aria-live="polite"
+                  className="w-full min-h-10 px-3 py-2.5 rounded-xl border border-stone-300 bg-stone-100 text-xs font-semibold text-stone-700"
                 >
-                  <option value="Within Chennai">
-                    Within Chennai — Rs.{stampPaper === 100 ? pricingConfig.stamp100Chennai : pricingConfig.stamp200Chennai}/- (with courier charges)
-                  </option>
-                  <option value="Within Tamil Nadu">
-                    Within Tamilnadu — Rs.{stampPaper === 100 ? pricingConfig.stamp100TamilNadu : pricingConfig.stamp200TamilNadu}/- (with courier charges)
-                  </option>
-                </select>
-                <p className="text-[11px] text-stone-500 mt-1">
-                  {location === 'Within Chennai' ? 'Local Chennai doorstep courier (Rs. 350 package)' : 'Within Tamilnadu (any district) — Rs. 400 package'}
-                </p>
-                {propertyPincode && isChennaiPincode(propertyPincode) && location === 'Within Chennai' && (
-                  <p className="text-[11px] text-emerald-700 font-semibold mt-1 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Auto-selected based on Chennai postal PIN ({propertyPincode})</span>
-                  </p>
-                )}
+                  {selectedDeliveryAddress && !detectedDeliveryLocation
+                    ? 'PIN required'
+                    : detectedDeliveryLocation || 'Select delivery recipient'}
+                </div>
               </div>
 
-              {/* Dropdown 3: Notary Signature */}
+              {/* Dropdown 4: Notary Signature */}
               <div>
-                <label htmlFor="terms-notary" className="block text-xs font-bold text-stone-800 mb-1">
-                  3. Notary Signature *
+                <label htmlFor="terms-notary" className="flex min-h-10 items-center gap-2.5 cursor-pointer text-xs font-semibold text-stone-800">
+                  <input
+                    id="terms-notary"
+                    type="checkbox"
+                    checked={hasNotary}
+                    onChange={(e) => onChange({ includeNotary: e.target.checked })}
+                    aria-describedby="terms-notary-description"
+                    className="h-4 w-4 shrink-0 rounded border-stone-300 accent-amber-600 focus:ring-2 focus:ring-amber-500"
+                  />
+                  <span>4. Include Notary Signature (+₹{pricingConfig.notaryExtraFee})</span>
                 </label>
-                <select
-                  id="terms-notary"
-                  value={hasNotary ? 'yes' : 'no'}
-                  onChange={(e) => onChange({ includeNotary: e.target.value === 'yes' })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-stone-300 bg-white text-xs font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
-                >
-                  <option value="no">Without notary signature (₹0)</option>
-                  <option value="yes">With notary signature Rs.{pricingConfig.notaryExtraFee}/- extra</option>
-                </select>
-                <p className="text-[11px] text-stone-500 mt-1">
-                  {hasNotary ? `Advocate Notary attestation and seal (+₹${pricingConfig.notaryExtraFee})` : 'Standard agreement print & stamp paper'}
+                <p id="terms-notary-description" className="text-[11px] text-stone-500 mt-1">
+                  {hasNotary ? 'Advocate notary attestation and seal added.' : 'Optional advocate notary attestation.'}
                 </p>
               </div>
             </div>

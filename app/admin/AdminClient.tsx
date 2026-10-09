@@ -936,6 +936,19 @@ export function AdminClient() {
                   <div>Notice: <strong>{selectedOrder.agreementTerms.noticePeriodDays} Days</strong></div>
                   <div>Stamp Paper: <strong>In Rs.{selectedOrder.agreementTerms.stampPaperDenomination || 100} Stamp Paper</strong></div>
                   <div>Courier Delivery: <strong>{selectedOrder.agreementTerms.deliveryLocation || 'Within Chennai'}</strong></div>
+                  <div className="col-span-2 sm:col-span-4">
+                    Delivery Address:{' '}
+                    {selectedOrder.agreementTerms.deliveryRecipient ? (
+                      <>
+                        <strong>{selectedOrder.agreementTerms.deliveryRecipient}</strong>{' '}
+                        {selectedOrder.agreementTerms.deliveryRecipient === 'Owner'
+                          ? selectedOrder.ownerDetails.address
+                          : selectedOrder.tenantDetails.address}
+                      </>
+                    ) : (
+                      'Not recorded on this order'
+                    )}
+                  </div>
                   <div className="sm:col-span-2">
                     Notary Attestation:{' '}
                     <strong className={selectedOrder.agreementTerms.includeNotary ? 'text-amber-700' : 'text-stone-700'}>

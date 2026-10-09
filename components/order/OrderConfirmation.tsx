@@ -10,7 +10,6 @@ import {
   ArrowRight, 
   MapPin, 
   PhoneCall,
-  Printer,
   Eye,
   ArrowLeft
 } from 'lucide-react';
@@ -40,6 +39,7 @@ export const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ order, onS
           }}
           onBack={() => setShowAgreementPreview(false)}
           title={`Rental Agreement Draft (Order #${order.orderId})`}
+          customerPreview
         />
         <div className="flex justify-center no-print">
           <button
@@ -120,6 +120,14 @@ export const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ order, onS
               <div>Monthly Rent: <strong>₹{order.agreementTerms.monthlyRent?.toLocaleString('en-IN')}</strong></div>
               <div>Advance: <strong>₹{order.agreementTerms.securityDeposit?.toLocaleString('en-IN')}</strong></div>
               <div>Tenure: <strong>{order.agreementTerms.tenureMonths} Months</strong></div>
+              {order.agreementTerms.deliveryRecipient && (
+                <div className="col-span-2 sm:col-span-3">
+                  Courier delivery to <strong>{order.agreementTerms.deliveryRecipient}</strong>:{' '}
+                  {order.agreementTerms.deliveryRecipient === 'Owner'
+                    ? order.ownerDetails.address
+                    : order.tenantDetails.address}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -157,7 +165,7 @@ export const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ order, onS
             className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 px-6 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
           >
             <Eye className="w-4 h-4" />
-            <span>View / Print Agreement Draft</span>
+            <span>View Agreement Draft</span>
           </button>
 
           <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">

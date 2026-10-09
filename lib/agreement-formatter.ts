@@ -61,19 +61,12 @@ export function calculateAgreementEndDate(startDateInput?: string, tenureMonths:
 }
 
 /**
- * Converts notice period in days to months string for Clause 6, e.g. "1 (One)"
+ * Converts notice period in days to a numeric month string for Clause 6.
  */
 export function formatNoticePeriodMonths(days?: number): string {
-  if (!days || isNaN(days)) return '1 (One)';
+  if (!days || isNaN(days)) return '1';
   const months = Math.max(1, Math.round(days / 30));
-  const words: Record<number, string> = {
-    1: '1 (One)',
-    2: '2 (Two)',
-    3: '3 (Three)',
-    4: '4 (Four)',
-    6: '6 (Six)'
-  };
-  return words[months] || `${months}`;
+  return `${months}`;
 }
 
 /**

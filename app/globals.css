@@ -27,6 +27,10 @@
     background: white !important;
   }
 
+  .customer-agreement-preview #printable-agreement-doc {
+    display: none !important;
+  }
+
   .no-print,
   nav,
   header,

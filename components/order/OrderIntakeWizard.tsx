@@ -30,7 +30,7 @@ import {
   Order 
 } from '@/lib/types';
 import { saveDraft, getDraft, deleteDraft, createOrder } from '@/lib/order-service';
-import { detectCourierRegion } from '@/lib/pincode-utils';
+import { extractPincode } from '@/lib/pincode-utils';
 
 export function OrderIntakeWizard() {
   const { user, loading: authLoading, signInWithGoogle, authError } = useAuth();
@@ -84,7 +84,7 @@ export function OrderIntakeWizard() {
     rentIncreasePct: 5,
     paymentDueDay: 5,
     stampPaperDenomination: 100,
-    deliveryLocation: 'Within Chennai',
+    deliveryRecipient: undefined,
     includeNotary: false,
   });
 
@@ -428,6 +428,16 @@ export function OrderIntakeWizard() {
     }
     if (!termsData.tenureMonths || Number(termsData.tenureMonths) < 1) {
       errs.tenureMonths = 'Select tenancy tenure';
+    }
+    if (!termsData.deliveryRecipient) {
+      errs.deliveryRecipient = 'Choose whether delivery should go to the owner or tenant.';
+    } else {
+      const deliveryAddress = termsData.deliveryRecipient === 'Owner'
+        ? ownerData.address
+        : tenantData.address;
+      if (!extractPincode(deliveryAddress)) {
+        errs.deliveryRecipient = 'Add a six-digit Tamil Nadu PIN code to the selected address in Step 1 or Step 2.';
+      }
     }
 
     setErrors(errs);
@@ -800,7 +810,10 @@ export function OrderIntakeWizard() {
         {currentStep === 4 && (
           <AgreementTermsStep
             data={termsData}
-            propertyPincode={propertyData.pincode}
+            ownerAddress={ownerData.address}
+            ownerName={ownerData.fullName}
+            tenantAddress={tenantData.address}
+            tenantName={tenantData.fullName}
             onChange={(fields) => {
               setTermsData((prev) => ({ ...prev, ...fields }));
               setErrors({});

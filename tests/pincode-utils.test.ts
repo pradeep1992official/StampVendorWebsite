@@ -36,6 +36,10 @@ test('Pincode Utils: Address & City Region Auto-Detection', () => {
     detectCourierRegion({ pincode: '641018' }),
     'Within Tamil Nadu'
   );
+  assert.equal(
+    detectCourierRegion({ pincode: '605757' }),
+    'Within Tamil Nadu'
+  );
 
   // City based detection
   assert.equal(

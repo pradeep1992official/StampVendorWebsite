@@ -45,9 +45,9 @@ test('Agreement Formatter: 11-Month Tenure Calculation', () => {
 });
 
 test('Agreement Formatter: Notice Period & Property Descriptions', () => {
-  assert.equal(formatNoticePeriodMonths(30), '1 (One)');
-  assert.equal(formatNoticePeriodMonths(60), '2 (Two)');
-  assert.equal(formatNoticePeriodMonths(90), '3 (Three)');
+  assert.equal(formatNoticePeriodMonths(30), '1');
+  assert.equal(formatNoticePeriodMonths(60), '2');
+  assert.equal(formatNoticePeriodMonths(90), '3');
 
   assert.equal(formatPropertyDescription('Flat', 'Semi-Furnished'), 'Semi-Furnished Residential Flat / Apartment premises');
   assert.equal(formatPropertyDescription('House', 'Unfurnished'), 'Independent Residential House premises');

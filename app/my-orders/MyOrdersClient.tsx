@@ -183,6 +183,7 @@ export function MyOrdersClient() {
           }}
           onBack={() => setSelectedAgreementOrder(null)}
           title={`Rental Agreement Draft (Order #${selectedAgreementOrder.orderId})`}
+          customerPreview
         />
         <div className="flex justify-center no-print">
           <button

@@ -33,12 +33,22 @@ interface RentalAgreementDocumentProps {
   data: AgreementDocumentData;
   onBack?: () => void;
   title?: string;
+  customerPreview?: boolean;
 }
+
+const SampleDraftWatermark: React.FC = () => (
+  <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center overflow-hidden">
+    <span className="rotate-[-30deg] whitespace-nowrap text-5xl font-black uppercase text-rose-800/15 sm:text-6xl">
+      SAMPLE DRAFT
+    </span>
+  </div>
+);
 
 export const RentalAgreementDocument: React.FC<RentalAgreementDocumentProps> = ({
   data,
   onBack,
-  title = 'Rental Agreement Draft Preview'
+  title = 'Rental Agreement Draft Preview',
+  customerPreview = false,
 }) => {
   const [highlightFields, setHighlightFields] = useState<boolean>(true);
   const [stampPaperSpace, setStampPaperSpace] = useState<boolean>(true);
@@ -111,7 +121,12 @@ export const RentalAgreementDocument: React.FC<RentalAgreementDocumentProps> = (
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6">
+    <div
+      className={`w-full max-w-4xl mx-auto space-y-6 ${customerPreview ? 'customer-agreement-preview select-none' : ''}`}
+      onContextMenu={customerPreview ? (event) => event.preventDefault() : undefined}
+      onCopy={customerPreview ? (event) => event.preventDefault() : undefined}
+      onCut={customerPreview ? (event) => event.preventDefault() : undefined}
+    >
       {/* Top Toolbar (Hidden when printing) */}
       <div className="no-print bg-white border border-stone-200 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -168,34 +183,39 @@ export const RentalAgreementDocument: React.FC<RentalAgreementDocumentProps> = (
           </button>
 
           {/* Print / Save PDF Button */}
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm cursor-pointer transition active:scale-95"
-            title="Print document or select 'Save as PDF' in the destination dropdown"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Print / Save PDF</span>
-          </button>
+          {!customerPreview && (
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm cursor-pointer transition active:scale-95"
+              title="Print document or select 'Save as PDF' in the destination dropdown"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Print / Save PDF</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Tip for Saving PDF */}
-      <div className="no-print bg-amber-50/70 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center gap-2 text-xs text-amber-900">
-        <HelpCircle className="w-4 h-4 text-amber-700 shrink-0" />
-        <span>
-          <strong>How to Save PDF:</strong> Click <strong>Print / Save PDF</strong> and select <strong>&quot;Save as PDF&quot;</strong> as the Destination in your browser&apos;s print dialog.
-        </span>
-      </div>
+      {!customerPreview && (
+        <div className="no-print bg-amber-50/70 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center gap-2 text-xs text-amber-900">
+          <HelpCircle className="w-4 h-4 text-amber-700 shrink-0" />
+          <span>
+            <strong>How to Save PDF:</strong> Click <strong>Print / Save PDF</strong> and select <strong>&quot;Save as PDF&quot;</strong> as the Destination in your browser&apos;s print dialog.
+          </span>
+        </div>
+      )}
 
       {/* DOCUMENT CONTAINER */}
-      <div id="printable-agreement-doc" className="agreement-document-wrapper space-y-8 print:space-y-0">
+      <div id="printable-agreement-doc" className={`agreement-document-wrapper space-y-8 print:space-y-0 ${customerPreview ? 'customer-agreement-document' : ''}`}>
         
         {/* ================= PAGE 1 ================= */}
         <section 
-          className="agreement-page bg-white border border-stone-200 rounded-2xl shadow-sm p-8 sm:p-14 text-stone-900 font-serif leading-relaxed text-[15px] max-w-[210mm] mx-auto min-h-[297mm] flex flex-col justify-between"
+          className="agreement-page relative bg-white border border-stone-200 rounded-2xl shadow-sm p-8 sm:p-14 text-stone-900 font-serif leading-relaxed text-[15px] max-w-[210mm] mx-auto min-h-[297mm] flex flex-col justify-between"
           style={{ fontFamily: 'Georgia, Cambria, "Times New Roman", Times, serif' }}
         >
+          {customerPreview && <SampleDraftWatermark />}
           <div>
             {/* Stamp Paper Allowance (Page 1 Header) */}
             {stampPaperSpace && (
@@ -257,9 +277,10 @@ export const RentalAgreementDocument: React.FC<RentalAgreementDocumentProps> = (
 
         {/* ================= PAGE 2 ================= */}
         <section 
-          className="agreement-page bg-white border border-stone-200 rounded-2xl shadow-sm p-8 sm:p-14 text-stone-900 font-serif leading-relaxed text-[15px] max-w-[210mm] mx-auto min-h-[297mm] flex flex-col justify-between"
+          className="agreement-page relative bg-white border border-stone-200 rounded-2xl shadow-sm p-8 sm:p-14 text-stone-900 font-serif leading-relaxed text-[15px] max-w-[210mm] mx-auto min-h-[297mm] flex flex-col justify-between"
           style={{ fontFamily: 'Georgia, Cambria, "Times New Roman", Times, serif' }}
         >
+          {customerPreview && <SampleDraftWatermark />}
           <div className="space-y-6 text-justify">
             {/* Preamble / Recital */}
             <p className="leading-loose">
@@ -324,9 +345,10 @@ export const RentalAgreementDocument: React.FC<RentalAgreementDocumentProps> = (
 
         {/* ================= PAGE 3 ================= */}
         <section 
-          className="agreement-page bg-white border border-stone-200 rounded-2xl shadow-sm p-8 sm:p-14 text-stone-900 font-serif leading-relaxed text-[15px] max-w-[210mm] mx-auto min-h-[297mm] flex flex-col justify-between"
+          className="agreement-page relative bg-white border border-stone-200 rounded-2xl shadow-sm p-8 sm:p-14 text-stone-900 font-serif leading-relaxed text-[15px] max-w-[210mm] mx-auto min-h-[297mm] flex flex-col justify-between"
           style={{ fontFamily: 'Georgia, Cambria, "Times New Roman", Times, serif' }}
         >
+          {customerPreview && <SampleDraftWatermark />}
           <div className="space-y-6 text-justify">
             {/* Clause 7 */}
             <p className="leading-loose">

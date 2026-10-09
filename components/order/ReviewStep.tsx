@@ -146,6 +146,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
           }}
           onBack={() => setShowAgreementPreview(false)}
           title="Rental Agreement Draft (Official 3-Page Format)"
+          customerPreview
         />
         <div className="mt-6 flex justify-center no-print">
           <button
@@ -202,14 +203,6 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowAgreementPreview(true)}
-          className="px-3.5 py-1.5 bg-white hover:bg-stone-50 border border-stone-300 text-stone-800 rounded-xl text-xs font-semibold shrink-0 flex items-center gap-1.5 shadow-xs transition cursor-pointer"
-        >
-          <Eye className="w-3.5 h-3.5 text-amber-700" />
-          <span>View Draft Preview</span>
-        </button>
       </div>
 
       {submissionError && (
@@ -329,6 +322,13 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             <div><span className="text-stone-400">Rent Increase %:</span> {termsData.rentIncreasePct}% per annum</div>
             <div><span className="text-stone-400">Stamp Paper:</span> <strong>In Rs.{termsData.stampPaperDenomination || 100} Stamp Paper</strong></div>
             <div><span className="text-stone-400">Courier Region:</span> <strong>{termsData.deliveryLocation || 'Within Chennai'}</strong></div>
+            <div><span className="text-stone-400">Delivery Recipient:</span> <strong>{termsData.deliveryRecipient || 'Not selected'}</strong></div>
+            {termsData.deliveryRecipient && (
+              <div className="sm:col-span-2">
+                <span className="text-stone-400">Delivery Address:</span>{' '}
+                {termsData.deliveryRecipient === 'Owner' ? ownerData.address : tenantData.address}
+              </div>
+            )}
             <div className="sm:col-span-2">
               <span className="text-stone-400">Notary Public Attestation:</span>{' '}
               <strong className={termsData.includeNotary ? 'text-amber-700' : 'text-stone-700'}>
