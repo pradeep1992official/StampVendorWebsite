@@ -10,14 +10,13 @@ import {
   PackageCheck
 } from 'lucide-react';
 import { PriceBreakdownCard } from '@/components/PriceBreakdownCard';
-import { DisclaimerBanner } from '@/components/DisclaimerBanner';
 
 export const metadata: Metadata = {
   title: 'How It Works | Step-by-Step Rental Agreement Delivery in Tamil Nadu',
-  description: 'Discover how our 4-step certified stamp paper process delivers authentic rental agreements to your doorstep across Tamil Nadu in 24-48 hours.',
+  description: 'Discover how our 4-step process delivers authentic rental agreements to your doorstep across Tamil Nadu via Professional Courier.',
   openGraph: {
     title: 'How It Works | Step-by-Step Rental Agreement Delivery in Tamil Nadu',
-    description: 'Discover how our 4-step certified stamp paper process delivers authentic rental agreements to your doorstep across Tamil Nadu in 24-48 hours.',
+    description: 'Discover how our 4-step process delivers authentic rental agreements to your doorstep across Tamil Nadu via Professional Courier.',
   },
 };
 
@@ -27,10 +26,10 @@ export default function HowItWorksPage() {
       num: '01',
       icon: <FileText className="w-6 h-6 text-amber-700" />,
       title: 'Submit Agreement & Proof Details Online',
-      desc: 'Fill our clean, mobile-first 5-minute form with Owner, Tenant, and Property details. Upload ID proofs and property address proof (EB Bill or Property Tax). For security, only the last 4 digits of Aadhaar are recorded.',
+      desc: 'Fill our clean, mobile-first form with Owner, Tenant, and Property details. Upload ID proofs and property address proof (EB Bill or Property Tax). Providing an Aadhaar number is optional.',
       details: [
         'Owner & Tenant full name, father/spouse name, age, phone & email',
-        'Last 4 digits of Aadhaar only (masked for privacy)',
+        'Government ID proof (Aadhaar optional, Voter ID, PAN, or Passport)',
         'Monthly rent, security deposit, notice period & tenure',
         'Clear JPG, PNG, or PDF proof uploads up to 5 MB',
       ],
@@ -38,21 +37,21 @@ export default function HowItWorksPage() {
     {
       num: '02',
       icon: <CreditCard className="w-6 h-6 text-sky-700" />,
-      title: 'Review & Pay via Secure Razorpay Gateway',
-      desc: 'Review every detail on an editable summary screen. Pay ₹498 securely online. Government Stamp Duty (₹100), Drafting & Stamping (₹299), and Speed Post Courier (₹99) are transparently itemized with zero hidden charges.',
+      title: 'Review & Pay via Secure Online Gateway',
+      desc: 'Review every detail on an editable summary screen. Pay securely online. Government Stamp Duty, Drafting & Stamping, and Professional Courier charges are transparently itemized with zero hidden charges.',
       details: [
         'Instant digital order receipt & unique Order ID',
-        'Server-side Razorpay webhook confirmation',
+        'Server-side payment verification',
         'SMS & email confirmation with order status tracking link',
       ],
     },
     {
       num: '03',
       icon: <Printer className="w-6 h-6 text-purple-700" />,
-      title: 'Certified Stamp Paper Procured & Drafted',
-      desc: 'Our licensed stamp vendor (Licence #V/MDU/2014/0488) reviews the documents against registration guidelines. We print the custom rental contract onto authentic non-judicial stamp paper bearing the physical serial number.',
+      title: 'Non-Judicial Stamp Paper Procured & Drafted',
+      desc: 'Our drafting team formats the agreement according to standard tenancy guidelines. We print the custom rental contract onto authentic non-judicial stamp paper bearing the physical serial number.',
       details: [
-        'Authentic serial number entered into official stamp vendor register',
+        'Authentic serial numbered Tamil Nadu non-judicial stamp paper',
         'Standard clauses formulated for Tamil Nadu tenancy laws',
         'Quality inspection to ensure all spelling and party names match ID proofs',
       ],
@@ -60,11 +59,11 @@ export default function HowItWorksPage() {
     {
       num: '04',
       icon: <Truck className="w-6 h-6 text-emerald-700" />,
-      title: 'Tamper-Proof Courier Dispatched to Your Doorstep',
-      desc: 'The stamped agreement is safely packaged inside a waterproof, tear-resistant courier envelope and dispatched via India Post Speed Post or Blue Dart with live online tracking.',
+      title: 'Professional Courier Dispatched to Your Doorstep',
+      desc: 'The stamped agreement is safely packaged inside a secure, tear-resistant envelope and dispatched strictly via Professional Courier with consignment tracking.',
       details: [
-        'Dispatched within 24 hours of order confirmation',
-        'Live tracking number sent to customer via SMS and order portal',
+        'Dispatched promptly upon draft verification',
+        'Professional Courier consignment number sent via SMS and order portal',
         'Simply sign along with tenant and two witnesses upon delivery',
       ],
     },
@@ -81,11 +80,11 @@ export default function HowItWorksPage() {
             </span>
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
-              How Our Certified Stamp Paper Service Works
+              How Our Rental Agreement Service Works
             </h1>
 
             <p className="text-stone-300 text-base sm:text-lg leading-relaxed">
-              A transparent, reliable 4-step workflow designed to save your time while ensuring 100% legal compliance in Tamil Nadu.
+              A transparent, reliable 4-step workflow designed to save your time while providing authentic non-judicial stamp paper agreements across Tamil Nadu.
             </p>
 
             <div className="pt-2">
@@ -138,10 +137,10 @@ export default function HowItWorksPage() {
               <div className="lg:col-span-4 bg-stone-50 rounded-xl p-4 border border-stone-200/60 text-xs text-stone-600 space-y-2">
                 <div className="flex items-center gap-1.5 font-bold text-stone-900">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Certified Quality Check</span>
+                  <span>Authentic Quality Check</span>
                 </div>
                 <p>
-                  Every document printed is catalogued in our Tamil Nadu Registration Department vendor logbook with a unique physical serial number.
+                  Every document is drafted on genuine non-judicial stamp paper bearing an authentic serial number.
                 </p>
               </div>
             </div>
@@ -158,12 +157,12 @@ export default function HowItWorksPage() {
               Clear & Transparent Cost Structure
             </h2>
             <p className="text-stone-600 text-sm leading-relaxed">
-              No convenience surcharges, no hidden paperwork fees. We disclose the exact breakdown between the government stamp duty, licensed vendor drafting fee, and courier dispatch.
+              No convenience surcharges, no hidden paperwork fees. We disclose the exact breakdown between the government stamp duty, drafting & stamping fee, and Professional Courier dispatch.
             </p>
             <div className="space-y-2 pt-2 text-xs text-stone-700 font-medium">
               <div className="flex items-center gap-2">
                 <PackageCheck className="w-4 h-4 text-emerald-600" />
-                <span>Speed Post / Blue Dart with tracking number</span>
+                <span>Professional Courier with tracking number</span>
               </div>
               <div className="flex items-center gap-2">
                 <PackageCheck className="w-4 h-4 text-emerald-600" />
@@ -171,7 +170,7 @@ export default function HowItWorksPage() {
               </div>
               <div className="flex items-center gap-2">
                 <PackageCheck className="w-4 h-4 text-emerald-600" />
-                <span>Two copies printed: 1 on Stamp Paper, 1 on Ledger Paper</span>
+                <span>1 physical original copy printed on authentic stamp paper and couriered</span>
               </div>
             </div>
           </div>
@@ -180,11 +179,6 @@ export default function HowItWorksPage() {
             <PriceBreakdownCard showCta={true} />
           </div>
         </div>
-      </section>
-
-      {/* Statutory Disclaimer */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <DisclaimerBanner />
       </section>
     </div>
   );

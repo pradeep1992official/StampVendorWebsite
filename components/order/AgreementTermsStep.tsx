@@ -311,7 +311,7 @@ export const AgreementTermsStep: React.FC<AgreementTermsStepProps> = ({
                   <option value="yes">With notary signature Rs.{pricingConfig.notaryExtraFee}/- extra</option>
                 </select>
                 <p className="text-[11px] text-stone-500 mt-1">
-                  {hasNotary ? `Advocate Notary attestation and seal (+₹${pricingConfig.notaryExtraFee})` : 'Standard certified stamp vendor seal'}
+                  {hasNotary ? `Advocate Notary attestation and seal (+₹${pricingConfig.notaryExtraFee})` : 'Standard agreement print & stamp paper'}
                 </p>
               </div>
             </div>

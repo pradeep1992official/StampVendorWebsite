@@ -22,7 +22,9 @@ import { submitDocumentCorrection } from '@/lib/order-service';
 import { RentalAgreementDocument } from '@/components/agreement/RentalAgreementDocument';
 
 export function MyOrdersClient() {
-  const { user, loading: authLoading, signInWithGoogle } = useAuth();
+  const { user, loading: authLoading, signInWithGoogle, authError } = useAuth();
+  const [signingIn, setSigningIn] = useState(false);
+  const [localSignInError, setLocalSignInError] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,11 +141,28 @@ export function MyOrdersClient() {
               Sign in with your Google account to view your past rental agreements, tracking numbers, and correction requests.
             </p>
           </div>
+          { (authError || localSignInError) && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs p-3 rounded-xl text-left">
+              {authError || localSignInError}
+            </div>
+          )}
           <button
-            onClick={() => signInWithGoogle()}
-            className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition-colors cursor-pointer"
+            onClick={async () => {
+              setLocalSignInError(null);
+              setSigningIn(true);
+              try {
+                await signInWithGoogle();
+              } catch (err: unknown) {
+                const message = (err as { message?: string })?.message || 'Failed to sign in. Please verify popups are allowed.';
+                setLocalSignInError(message);
+              } finally {
+                setSigningIn(false);
+              }
+            }}
+            disabled={signingIn}
+            className="w-full bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition-colors cursor-pointer"
           >
-            Sign In with Google
+            {signingIn ? 'Opening Google Sign-In...' : 'Sign In with Google'}
           </button>
         </div>
       </div>

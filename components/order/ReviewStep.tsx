@@ -243,7 +243,9 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             <div><span className="text-stone-400">Age:</span> {ownerData.age} Years</div>
             <div><span className="text-stone-400">Phone:</span> {ownerData.phone}</div>
             <div><span className="text-stone-400">Email:</span> {ownerData.email}</div>
-            <div><span className="text-stone-400">Aadhaar (Last 4):</span> <strong className="font-mono text-emerald-800">XXXX-XXXX-{ownerData.aadhaarLast4}</strong></div>
+            {ownerData.aadhaarLast4 && (
+              <div><span className="text-stone-400">Aadhaar:</span> <strong className="font-mono text-stone-900">{ownerData.aadhaarLast4}</strong></div>
+            )}
             {ownerData.pan && <div><span className="text-stone-400">PAN:</span> <span className="font-mono">{ownerData.pan}</span></div>}
             <div className="sm:col-span-2"><span className="text-stone-400">Permanent Address:</span> {ownerData.address}</div>
           </div>
@@ -268,7 +270,9 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             <div><span className="text-stone-400">Age:</span> {tenantData.age} Years</div>
             <div><span className="text-stone-400">Phone:</span> {tenantData.phone}</div>
             <div><span className="text-stone-400">Email:</span> {tenantData.email}</div>
-            <div><span className="text-stone-400">Aadhaar (Last 4):</span> <strong className="font-mono text-emerald-800">XXXX-XXXX-{tenantData.aadhaarLast4}</strong></div>
+            {tenantData.aadhaarLast4 && (
+              <div><span className="text-stone-400">Aadhaar:</span> <strong className="font-mono text-stone-900">{tenantData.aadhaarLast4}</strong></div>
+            )}
             {tenantData.pan && <div><span className="text-stone-400">PAN:</span> <span className="font-mono">{tenantData.pan}</span></div>}
             <div className="sm:col-span-2"><span className="text-stone-400">Permanent Address:</span> {tenantData.address}</div>
           </div>
@@ -398,13 +402,10 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
           <div className="bg-stone-800/90 rounded-xl p-4 border border-stone-700 space-y-2 text-xs">
             <div className="flex items-center gap-2 text-amber-400 font-semibold">
               <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>Fee Confirmation & Online Payment Pending Vendor Setup</span>
+              <span>Order Review & Submission</span>
             </div>
             <p className="text-stone-300 leading-relaxed">
-              Official stamp duty and vendor fee amounts are pending final vendor schedule confirmation ({VENDOR_CONFIG.fees.serviceFee.displayLabel}: <span className="font-mono text-stone-400">[PENDING]</span>).
-            </p>
-            <p className="text-stone-400 leading-relaxed">
-              In accordance with safety standards, we <strong>never simulate successful payments</strong>. You can place your application now; the vendor desk will verify your documents and send you the exact invoice and UPI/counter payment instructions before stamping.
+              Your rental agreement details will be submitted for verification and printing on authentic non-judicial stamp paper.
             </p>
           </div>
         )}
@@ -419,7 +420,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             {submitting ? (
               <>
                 <div className="w-4 h-4 border-2 border-stone-950 border-t-transparent rounded-full animate-spin"></div>
-                <span>Submitting Application to Vendor Desk...</span>
+                <span>Submitting Application...</span>
               </>
             ) : (
               <>

@@ -120,7 +120,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
               <option value="yes">With notary signature Rs.{pricing.notaryExtraFee}/- extra</option>
             </select>
             <p className="text-[10px] text-stone-500 mt-1">
-              {includeNotary ? 'Advocate Notary attestation and seal' : 'Standard certified vendor seal'}
+              {includeNotary ? 'Advocate Notary attestation and seal' : 'Standard agreement print & stamp paper'}
             </p>
           </div>
         </div>
@@ -137,7 +137,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
             <div>
               <h4 className="font-bold text-stone-900 text-sm">Government Non-Judicial Stamp Paper</h4>
               <p className="text-xs text-stone-500 mt-0.5">
-                Physical stamp paper face value (₹{stampPaper}) purchased from certified vendor counter
+                Physical non-judicial stamp paper face value (₹{stampPaper})
               </p>
             </div>
           </div>
@@ -153,9 +153,9 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-stone-900 text-sm">Vendor Drafting & Printing Service</h4>
+              <h4 className="font-bold text-stone-900 text-sm">Drafting & Printing Service</h4>
               <p className="text-xs text-stone-500 mt-0.5">
-                Tamil Nadu standard legal format drafting, ledger paper printing, and official vendor endorsement
+                Tamil Nadu standard legal format drafting and physical printing on stamp paper
               </p>
             </div>
           </div>
@@ -173,7 +173,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
             <div>
               <h4 className="font-bold text-stone-900 text-sm">Courier Charges ({location})</h4>
               <p className="text-xs text-stone-500 mt-0.5">
-                Speed Post / Blue Dart express delivery with physical dispatch tracking
+                Professional Courier express delivery with physical dispatch tracking
               </p>
             </div>
           </div>
@@ -220,15 +220,15 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
       <div className="bg-stone-50 px-6 py-5 border-t border-stone-200/80 space-y-2.5">
         <div className="flex items-center gap-2 text-xs text-stone-700 font-medium">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>Non-judicial stamp paper procured from Registration Department vendor counter</span>
+          <span>Authentic Tamil Nadu non-judicial stamp paper</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-stone-700 font-medium">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>Two physical copies printed: 1 on stamp paper, 1 on accompanying ledger bond</span>
+          <span>1 physical original copy printed on genuine stamp paper</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-stone-700 font-medium">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>Postal tracking number provided upon dispatch</span>
+          <span>Dispatched strictly via Professional Courier with tracking ID</span>
         </div>
 
         {showCta && (

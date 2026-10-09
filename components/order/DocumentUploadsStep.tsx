@@ -380,7 +380,7 @@ export const DocumentUploadsStep: React.FC<DocumentUploadsStepProps> = ({
         <UploadCard
           id="proof-owner"
           title="1. Owner (Landlord) ID Proof *"
-          description="Aadhaar Card (ensure only last 4 digits are entered above), Voter ID, Passport, or PAN card."
+          description="Government ID Proof (Aadhaar Card, Voter ID, Passport, or PAN card). Aadhaar is optional."
           fileName={data.ownerIdProofFileName}
           fileUrl={data.ownerIdProofUrl}
           error={errors.ownerIdProof}
@@ -395,7 +395,7 @@ export const DocumentUploadsStep: React.FC<DocumentUploadsStepProps> = ({
         <UploadCard
           id="proof-tenant"
           title="2. Tenant ID Proof *"
-          description="Aadhaar Card, Voter ID, Passport, or Driving Licence of the tenant."
+          description="Government ID Proof (Aadhaar Card, Voter ID, Passport, or Driving Licence). Aadhaar is optional."
           fileName={data.tenantIdProofFileName}
           fileUrl={data.tenantIdProofUrl}
           error={errors.tenantIdProof}

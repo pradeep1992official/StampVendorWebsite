@@ -70,7 +70,7 @@ export const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ order, onS
             Order Reference: <span className="font-mono text-emerald-900">{order.orderId}</span>
           </h1>
           <p className="text-xs sm:text-sm text-stone-600 max-w-lg mx-auto leading-relaxed">
-            Your rental agreement application has been registered with the certified stamp vendor desk. Documents are now queued for verification.
+            Your rental agreement application has been registered. Documents are now queued for verification.
           </p>
         </div>
       </div>
@@ -93,14 +93,18 @@ export const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ order, onS
           <div className="space-y-1 bg-stone-50 p-4 rounded-xl border border-stone-200/80">
             <span className="font-bold text-stone-800 block text-xs">Landlord (Owner)</span>
             <p className="text-stone-600">{order.ownerDetails.fullName}</p>
-            <p className="text-stone-500 font-mono">Aadhaar: XXXX-XXXX-{order.ownerDetails.aadhaarLast4}</p>
+            {order.ownerDetails.aadhaarLast4 && (
+              <p className="text-stone-500 font-mono">Aadhaar: {order.ownerDetails.aadhaarLast4}</p>
+            )}
             <p className="text-stone-500">{order.ownerDetails.phone}</p>
           </div>
 
           <div className="space-y-1 bg-stone-50 p-4 rounded-xl border border-stone-200/80">
             <span className="font-bold text-stone-800 block text-xs">Tenant (Occupant)</span>
             <p className="text-stone-600">{order.tenantDetails.fullName}</p>
-            <p className="text-stone-500 font-mono">Aadhaar: XXXX-XXXX-{order.tenantDetails.aadhaarLast4}</p>
+            {order.tenantDetails.aadhaarLast4 && (
+              <p className="text-stone-500 font-mono">Aadhaar: {order.tenantDetails.aadhaarLast4}</p>
+            )}
             <p className="text-stone-500">{order.tenantDetails.phone}</p>
           </div>
 
@@ -127,7 +131,7 @@ export const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ order, onS
             <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/70 space-y-1">
               <span className="font-bold text-amber-900 block">1. Document Check</span>
               <p className="text-stone-600 leading-relaxed">
-                Vendor checks landlord & tenant proof documents against Tamil Nadu stamp requirements.
+                Our drafting team checks landlord & tenant proof documents against Tamil Nadu stamp requirements.
               </p>
             </div>
             <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/70 space-y-1">
@@ -137,9 +141,9 @@ export const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ order, onS
               </p>
             </div>
             <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/70 space-y-1">
-              <span className="font-bold text-amber-900 block">3. Courier Dispatch</span>
+              <span className="font-bold text-amber-900 block">3. Professional Courier Dispatch</span>
               <p className="text-stone-600 leading-relaxed">
-                The document is sent to your address with an India Post Speed Post / Blue Dart tracking code.
+                1 physical original document is sent to your address with a Professional Courier tracking code.
               </p>
             </div>
           </div>

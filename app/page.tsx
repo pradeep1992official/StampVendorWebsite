@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { 
-  Award, 
   CheckCircle2, 
   ArrowRight, 
   FileText, 
@@ -9,21 +8,17 @@ import {
   Clock, 
   Truck, 
   ChevronRight, 
-  Lock, 
-  MapPin 
+  Lock 
 } from 'lucide-react';
-import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { PriceBreakdownCard } from '@/components/PriceBreakdownCard';
-import { DisclaimerBanner } from '@/components/DisclaimerBanner';
-import { VendorPlaceholderNotice } from '@/components/VendorPlaceholderNotice';
 import { VENDOR_CONFIG } from '@/src/config/vendor';
 
 export const metadata: Metadata = {
-  title: 'Rental Agreement Drafting & Stamp Paper in Tamil Nadu | Certified Vendor',
-  description: 'Online rental agreement drafting on non-judicial stamp paper by certified vendor in Tamil Nadu. Clear fees: stamp duty, service fee, and courier charges shown separately.',
+  title: 'Rental Agreement Drafting & Stamp Paper in Tamil Nadu',
+  description: 'Online rental agreement drafting on non-judicial stamp paper in Tamil Nadu. Clear fees: stamp duty, service fee, and courier charges shown separately.',
   openGraph: {
-    title: 'Rental Agreement Drafting & Stamp Paper in Tamil Nadu | Certified Vendor',
-    description: 'Online rental agreement drafting on non-judicial stamp paper by certified vendor in Tamil Nadu. Clear fees: stamp duty, service fee, and courier charges shown separately.',
+    title: 'Rental Agreement Drafting & Stamp Paper in Tamil Nadu',
+    description: 'Online rental agreement drafting on non-judicial stamp paper in Tamil Nadu. Clear fees: stamp duty, service fee, and courier charges shown separately.',
   },
 };
 
@@ -33,12 +28,6 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-b from-stone-900 via-stone-900 to-stone-950 text-white pt-10 sm:pt-16 pb-16 px-4 sm:px-6 lg:px-8 border-b border-stone-800">
         <div className="max-w-7xl mx-auto">
-          {/* Trust badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold mb-6">
-            <Award className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="font-mono">Registration Dept Licence: {VENDOR_CONFIG.licenceNumber}</span>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             {/* Left Column: Heading and Value Props */}
             <div className="lg:col-span-7 space-y-6">
@@ -47,7 +36,7 @@ export default function HomePage() {
               </h1>
 
               <p className="text-stone-300 text-base sm:text-lg leading-relaxed max-w-2xl font-normal">
-                Drafted by a certified Tamil Nadu stamp vendor. Submit your agreement details and proofs online, get your drafted agreement printed on authentic non-judicial stamp paper, and delivered via courier.
+                Online rental agreement drafting service. Submit your agreement details and proofs online, get your drafted agreement printed on authentic non-judicial stamp paper, and delivered via Professional Courier.
               </p>
 
               {/* Core Features */}
@@ -58,11 +47,11 @@ export default function HomePage() {
                 </div>
                 <div className="flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-medium">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Doorstep Courier Delivery</span>
+                  <span>Professional Courier Dispatch</span>
                 </div>
                 <div className="flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-medium">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Aadhaar Masked (Last 4 Digits)</span>
+                  <span>1 Physical Original Copy</span>
                 </div>
                 <div className="flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-medium">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -80,15 +69,7 @@ export default function HomePage() {
                   <span>Start Your Agreement</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
-
-                <WhatsAppButton variant="primary" />
               </div>
-
-              {/* Disclaimer micro-copy */}
-              <p className="text-xs text-stone-400 flex items-center gap-1.5 pt-1">
-                <Lock className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                <span>Authorized stamp paper drafting desk. Not a law firm; no legal advice given.</span>
-              </p>
             </div>
 
             {/* Right Column: Pricing Breakdown Card (reads from config) */}
@@ -99,22 +80,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Visible Vendor Configuration Placeholder Notice */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <VendorPlaceholderNotice compact={true} />
-      </section>
-
       {/* What We Do Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto space-y-3 mb-12">
           <span className="text-xs uppercase tracking-wider font-bold text-amber-800 bg-amber-100 px-3 py-1 rounded-full">
-            Certified Vendor Service
+            Online Stamping Service
           </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-stone-900 tracking-tight">
             What We Do For Landlords & Tenants in Tamil Nadu
           </h2>
           <p className="text-stone-600 text-sm sm:text-base leading-relaxed">
-            Convenient, transparent agreement drafting on authentic stamp paper without waiting at counter queues.
+            Convenient, transparent agreement drafting on authentic non-judicial stamp paper without waiting at counter queues.
           </p>
         </div>
 
@@ -123,9 +99,9 @@ export default function HomePage() {
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center font-bold text-base">
               01
             </div>
-            <h3 className="font-bold text-stone-900 text-base">Official Non-Judicial Stamp Paper</h3>
+            <h3 className="font-bold text-stone-900 text-base">Non-Judicial Stamp Paper</h3>
             <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
-              Procured through licensed vendor channel ({VENDOR_CONFIG.licenceNumber}) under Tamil Nadu Registration Department rules.
+              Printed on authentic non-judicial stamp paper in accordance with Tamil Nadu tenancy standards.
             </p>
           </div>
 
@@ -143,9 +119,9 @@ export default function HomePage() {
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center font-bold text-base">
               03
             </div>
-            <h3 className="font-bold text-stone-900 text-base">Strict Identity Privacy</h3>
+            <h3 className="font-bold text-stone-900 text-base">Identity Privacy</h3>
             <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
-              In accordance with UIDAI guidelines: we record only the last 4 digits of Aadhaar numbers and keep proof documents strictly private.
+              Aadhaar numbers are optional. Your identification and property details are kept strictly private to your order.
             </p>
           </div>
 
@@ -153,9 +129,9 @@ export default function HomePage() {
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center font-bold text-base">
               04
             </div>
-            <h3 className="font-bold text-stone-900 text-base">Doorstep Courier Delivery</h3>
+            <h3 className="font-bold text-stone-900 text-base">Professional Courier</h3>
             <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
-              Printed stamp paper documents packaged securely and dispatched with live postal consignment tracking numbers.
+              1 physical original agreement dispatched directly to your doorstep strictly via Professional Courier with tracking ID.
             </p>
           </div>
         </div>
@@ -259,52 +235,6 @@ export default function HomePage() {
         <div className="max-w-3xl mx-auto">
           <PriceBreakdownCard showCta={true} />
         </div>
-      </section>
-
-      {/* Vendor Profile Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-br from-stone-900 to-stone-800 text-white rounded-3xl p-8 sm:p-12 border border-stone-700 shadow-lg">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            <div className="lg:col-span-8 space-y-4">
-              <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
-                <MapPin className="w-4 h-4" />
-                <span>Certified Stamp Vendor Profile</span>
-              </div>
-              <h3 className="text-2xl sm:text-3xl font-black text-white">
-                {VENDOR_CONFIG.tradeName}
-              </h3>
-              <p className="text-stone-300 text-sm leading-relaxed font-mono">
-                {VENDOR_CONFIG.addressLine1}, {VENDOR_CONFIG.addressLine2}, {VENDOR_CONFIG.city} - {VENDOR_CONFIG.pincode}
-              </p>
-              <div className="pt-2 flex flex-wrap gap-4 text-xs text-stone-300">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span className="font-mono">Licence: {VENDOR_CONFIG.licenceNumber}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>Tamil Nadu Registration Dept</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-3">
-              <Link
-                href="/rent-agreement"
-                className="w-full bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold py-3.5 px-6 rounded-xl text-center text-xs uppercase tracking-wider transition-all"
-              >
-                Start Rental Agreement
-              </Link>
-
-              <WhatsAppButton variant="outline" className="w-full bg-stone-900/60 border-stone-600 text-white hover:bg-stone-800" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Disclaimer */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <DisclaimerBanner />
       </section>
     </div>
   );

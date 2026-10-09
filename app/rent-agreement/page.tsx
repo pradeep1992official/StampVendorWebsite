@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import { PriceBreakdownCard } from '@/components/PriceBreakdownCard';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
-import { DisclaimerBanner } from '@/components/DisclaimerBanner';
 import { VENDOR_CONFIG } from '@/src/config/vendor';
 
 export const metadata: Metadata = {
@@ -30,11 +29,11 @@ export default function RentAgreementServicePage() {
     },
     {
       q: 'Do I need to visit the Sub-Registrar office in person?',
-      a: 'No. For an 11-month non-judicial stamp paper agreement, physical presence at the Sub-Registrar office is not mandated. The certified vendor procures the stamp paper, prints the verified draft, and couriers it to your address. You and your tenant sign in the presence of two witnesses.',
+      a: 'No. For an 11-month non-judicial stamp paper agreement, physical presence at the Sub-Registrar office is not mandated. Our team procures the stamp paper, prints the verified draft, and couriers it to your address. You and your tenant sign in the presence of two witnesses.',
     },
     {
-      q: 'How do you safeguard my Aadhaar data?',
-      a: 'We strictly adhere to UIDAI privacy rules and do NOT store full 12-digit Aadhaar numbers. Our platform records only the last 4 digits (e.g., XXXX-XXXX-4921). All uploaded proofs are kept private to your order and authenticated vendor staff.',
+      q: 'Is Aadhaar mandatory for drafting the agreement?',
+      a: 'No. Aadhaar is completely optional. You can provide any standard government-issued identity proof such as Voter ID, PAN card, Passport, or Driving Licence. All uploaded documents and information are kept strictly private to your order.',
     },
     {
       q: 'Can this agreement be notarized?',
@@ -129,7 +128,7 @@ export default function RentAgreementServicePage() {
                   <div>
                     <h4 className="font-semibold text-stone-900 text-sm">Owner Identification Proof</h4>
                     <p className="text-xs text-stone-600 mt-0.5">
-                      Aadhaar Card (we only record the last 4 digits), Voter ID, PAN Card, or Passport.
+                      Government ID: Aadhaar Card (optional), Voter ID, PAN Card, or Passport.
                     </p>
                   </div>
                 </div>
@@ -141,7 +140,7 @@ export default function RentAgreementServicePage() {
                   <div>
                     <h4 className="font-semibold text-stone-900 text-sm">Tenant Identification Proof</h4>
                     <p className="text-xs text-stone-600 mt-0.5">
-                      Aadhaar Card (last 4 digits only), Voter ID, Passport, or Driving Licence.
+                      Government ID: Aadhaar Card (optional), Voter ID, Passport, or Driving Licence.
                     </p>
                   </div>
                 </div>
@@ -165,7 +164,7 @@ export default function RentAgreementServicePage() {
                   <span>Document Upload Security</span>
                 </div>
                 <p className="leading-relaxed">
-                  Only JPG, PNG, and PDF formats accepted up to 5 MB per document. Never enter or upload unmasked full Aadhaar numbers; our platform specifically restricts input to the last 4 digits only. Uploaded files are strictly private to your order.
+                  Only JPG, PNG, and PDF formats accepted up to 5 MB per document. Providing Aadhaar is optional; you can provide any valid government ID proof. Uploaded files are strictly private to your order.
                 </p>
               </div>
             </div>
@@ -175,14 +174,14 @@ export default function RentAgreementServicePage() {
           <div className="lg:col-span-5 space-y-6">
             <PriceBreakdownCard showCta={true} />
 
-            {/* Courier Dispatch Card (without invented district hours) */}
+            {/* Courier Dispatch Card */}
             <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm space-y-3">
               <div className="flex items-center gap-2">
                 <Clock className="w-5 h-5 text-amber-600" />
                 <h3 className="font-bold text-stone-900 text-base">Courier Dispatch</h3>
               </div>
               <p className="text-xs text-stone-600 leading-relaxed">
-                Once customer details and uploaded proofs are verified, the agreement is printed on non-judicial stamp paper and handed over to courier (India Post Speed Post / Blue Dart). Consignment tracking numbers are sent via SMS and reflected in your order tracking portal.
+                Once customer details and uploaded proofs are verified, 1 physical original agreement is printed on non-judicial stamp paper and handed over strictly to Professional Courier. Consignment tracking numbers are sent via SMS and reflected in your order tracking portal.
               </p>
             </div>
           </div>
@@ -221,11 +220,6 @@ export default function RentAgreementServicePage() {
             </Link>
           </div>
         </div>
-      </section>
-
-      {/* Disclaimer */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <DisclaimerBanner />
       </section>
     </div>
   );

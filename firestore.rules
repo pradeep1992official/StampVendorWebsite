@@ -9,7 +9,10 @@ service cloud.firestore {
     // Admin access strictly via verified administrator email
     function isAdmin() {
       return isSignedIn()
-        && request.auth.token.email == "pradhiip92@gmail.com"
+        && (
+          request.auth.token.email == "pradeep1992official@gmail.com"
+          || request.auth.token.email == "pradhiip92@gmail.com"
+        )
         && request.auth.token.email_verified == true;
     }
 

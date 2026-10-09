@@ -4,18 +4,15 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  ShieldCheck, 
   Menu, 
   X, 
   FileText, 
-  PhoneCall, 
   Globe,
   User,
   LogOut
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
 import { useAuth } from '@/lib/auth-context';
-import { VENDOR_CONFIG } from '@/src/config/vendor';
 
 interface HeaderProps {
   onStartAgreement?: () => void;
@@ -23,7 +20,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onStartAgreement }) => {
   const { lang, setLang, t } = useI18n();
-  const { user, signOut } = useAuth();
+  const { user, signOut, signInWithGoogle } = useAuth();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -42,44 +39,8 @@ export const Header: React.FC<HeaderProps> = ({ onStartAgreement }) => {
     setLang(lang === 'en' ? 'ta' : 'en');
   };
 
-  const rawPhone = VENDOR_CONFIG.phone.replace(/[^0-9+]/g, '');
-
   return (
     <header className="sticky top-0 z-50 bg-stone-900 text-stone-100 shadow-md">
-      {/* Top certified license strip */}
-      <div className="bg-stone-950 border-b border-stone-800 text-[11px] sm:text-xs py-1.5 px-4 text-stone-300">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 overflow-hidden text-ellipsis whitespace-nowrap">
-            <ShieldCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="font-semibold text-amber-300">Certified Stamp Vendor</span>
-            <span className="text-stone-500 hidden sm:inline">•</span>
-            <span className="font-mono text-stone-300 hidden sm:inline">{VENDOR_CONFIG.licenceNumber}</span>
-          </div>
-
-          <div className="flex items-center gap-4 shrink-0">
-            {rawPhone && (
-              <a
-                href={`tel:${rawPhone}`}
-                className="hidden md:flex items-center gap-1 text-stone-300 hover:text-white transition-colors"
-              >
-                <PhoneCall className="w-3 h-3 text-amber-400" />
-                <span>{VENDOR_CONFIG.phone}</span>
-              </a>
-            )}
-
-            {/* Language toggle */}
-            <button
-              onClick={toggleLanguage}
-              className="flex items-center gap-1 px-2 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-medium transition-colors border border-stone-700 cursor-pointer"
-              aria-label="Toggle language between English and Tamil"
-            >
-              <Globe className="w-3 h-3 text-amber-400" />
-              <span>{lang === 'en' ? 'தமிழ்' : 'English'}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Main Navigation Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
@@ -93,13 +54,10 @@ export const Header: React.FC<HeaderProps> = ({ onStartAgreement }) => {
             </div>
             <div>
               <div className="font-extrabold text-base sm:text-lg text-white tracking-tight group-hover:text-amber-400 transition-colors flex items-center gap-1.5">
-                <span>{VENDOR_CONFIG.tradeName}</span>
-                <span className="inline-block text-[10px] px-1.5 py-0.2 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded font-medium">
-                  Vendor
-                </span>
+                <span>TN Rental Agreement</span>
               </div>
               <p className="text-[11px] text-stone-400 font-normal leading-tight hidden xs:block">
-                Tamil Nadu Non-Judicial Stamp Paper Drafting Service
+                Non-Judicial Stamp Paper Agreement Drafting
               </p>
             </div>
           </Link>
@@ -126,6 +84,15 @@ export const Header: React.FC<HeaderProps> = ({ onStartAgreement }) => {
 
           {/* Action CTAs */}
           <div className="hidden sm:flex items-center gap-3">
+            {/* Language toggle */}
+            <button
+              onClick={toggleLanguage}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-medium transition-colors border border-stone-700 cursor-pointer"
+              aria-label="Toggle language between English and Tamil"
+            >
+              <Globe className="w-3.5 h-3.5 text-amber-400" />
+              <span>{lang === 'en' ? 'தமிழ்' : 'English'}</span>
+            </button>
             {/* User Account / Sign In Status */}
             {user ? (
               <div className="flex items-center gap-2">
@@ -147,7 +114,15 @@ export const Header: React.FC<HeaderProps> = ({ onStartAgreement }) => {
                   </button>
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <button
+                onClick={() => signInWithGoogle().catch(() => {})}
+                className="px-3 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 border border-stone-700 text-xs text-stone-200 font-medium transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <User className="w-3.5 h-3.5 text-amber-400" />
+                <span>Sign In</span>
+              </button>
+            )}
 
             {onStartAgreement ? (
               <button
@@ -190,18 +165,24 @@ export const Header: React.FC<HeaderProps> = ({ onStartAgreement }) => {
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-stone-950 border-t border-stone-800 px-4 pt-3 pb-6 space-y-2">
-          <div className="p-2 mb-2 bg-stone-900 rounded-lg text-xs text-stone-300 flex items-center justify-between">
-            <span className="font-mono text-amber-400">{VENDOR_CONFIG.licenceNumber}</span>
-            <span className="text-stone-400">{VENDOR_CONFIG.workingHours}</span>
-          </div>
-
-          {user && (
+          {user ? (
             <div className="p-3 mb-2 bg-stone-900 rounded-lg text-xs text-stone-200 flex items-center justify-between">
               <span className="truncate">{user.displayName || user.email}</span>
               <button onClick={() => signOut()} className="text-rose-400 font-semibold cursor-pointer">
                 Sign Out
               </button>
             </div>
+          ) : (
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                signInWithGoogle().catch(() => {});
+              }}
+              className="w-full mb-2 p-3 bg-stone-900 border border-stone-800 rounded-xl text-xs text-stone-200 flex items-center justify-center gap-2 cursor-pointer font-medium hover:bg-stone-800"
+            >
+              <User className="w-4 h-4 text-amber-400" />
+              <span>Sign In with Google</span>
+            </button>
           )}
 
           <nav className="flex flex-col space-y-1">

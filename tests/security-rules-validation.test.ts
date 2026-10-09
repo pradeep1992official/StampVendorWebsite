@@ -66,7 +66,7 @@ function canCustomerUpdateOrder(
   incomingDoc: OrderDataMock
 ): { allowed: boolean; reason?: string } {
   if (!auth) return { allowed: false, reason: 'Unauthenticated' };
-  const isAdmin = auth.email === 'pradhiip92@gmail.com' && auth.email_verified === true;
+  const isAdmin = (auth.email === 'pradhiip92@gmail.com' || auth.email === 'pradeep1992official@gmail.com') && auth.email_verified === true;
   if (isAdmin) return { allowed: true }; // Admin can update
 
   const isOwner = auth.uid === existingDoc.ownerUid;

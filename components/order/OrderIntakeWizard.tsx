@@ -33,7 +33,9 @@ import {
 import { saveDraft, getDraft, deleteDraft, createOrder } from '@/lib/order-service';
 
 export function OrderIntakeWizard() {
-  const { user, loading: authLoading, signInWithGoogle } = useAuth();
+  const { user, loading: authLoading, signInWithGoogle, authError } = useAuth();
+  const [signingIn, setSigningIn] = useState<boolean>(false);
+  const [localSignInError, setLocalSignInError] = useState<string | null>(null);
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -336,8 +338,11 @@ export function OrderIntakeWizard() {
     if (!ownerData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerData.email)) {
       errs.email = 'Valid email address required';
     }
-    if (!ownerData.aadhaarLast4 || !/^\d{4}$/.test(ownerData.aadhaarLast4)) {
-      errs.aadhaarLast4 = 'Strictly 4 numeric digits required';
+    if (ownerData.aadhaarLast4 && ownerData.aadhaarLast4.trim()) {
+      const cleanAadhaar = ownerData.aadhaarLast4.replace(/[\s-]/g, '');
+      if (!/^\d{4,12}$/.test(cleanAadhaar)) {
+        errs.aadhaarLast4 = 'Please enter a valid numeric identification or Aadhaar number';
+      }
     }
     if (ownerData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(ownerData.pan)) {
       errs.pan = 'Invalid PAN format (e.g. ABCDE1234F)';
@@ -368,8 +373,11 @@ export function OrderIntakeWizard() {
     if (!tenantData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(tenantData.email)) {
       errs.email = 'Valid email address required';
     }
-    if (!tenantData.aadhaarLast4 || !/^\d{4}$/.test(tenantData.aadhaarLast4)) {
-      errs.aadhaarLast4 = 'Strictly 4 numeric digits required';
+    if (tenantData.aadhaarLast4 && tenantData.aadhaarLast4.trim()) {
+      const cleanAadhaar = tenantData.aadhaarLast4.replace(/[\s-]/g, '');
+      if (!/^\d{4,12}$/.test(cleanAadhaar)) {
+        errs.aadhaarLast4 = 'Please enter a valid numeric identification or Aadhaar number';
+      }
     }
     if (tenantData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(tenantData.pan)) {
       errs.pan = 'Invalid PAN format (e.g. ABCDE1234F)';
@@ -609,11 +617,29 @@ export function OrderIntakeWizard() {
             </p>
           </div>
 
+          {(authError || localSignInError) && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs p-3 rounded-xl text-left">
+              {authError || localSignInError}
+            </div>
+          )}
+
           <div className="pt-2">
             <button
               type="button"
-              onClick={() => signInWithGoogle()}
-              className="w-full flex items-center justify-center gap-3 bg-white border border-stone-300 hover:bg-stone-50 text-stone-800 font-bold py-3.5 px-6 rounded-2xl shadow-sm hover:shadow transition-all text-sm cursor-pointer"
+              disabled={signingIn}
+              onClick={async () => {
+                setLocalSignInError(null);
+                setSigningIn(true);
+                try {
+                  await signInWithGoogle();
+                } catch (err: unknown) {
+                  const message = (err as { message?: string })?.message || 'Google sign-in popup was blocked or failed.';
+                  setLocalSignInError(message);
+                } finally {
+                  setSigningIn(false);
+                }
+              }}
+              className="w-full flex items-center justify-center gap-3 bg-white border border-stone-300 hover:bg-stone-50 disabled:opacity-50 text-stone-800 font-bold py-3.5 px-6 rounded-2xl shadow-sm hover:shadow transition-all text-sm cursor-pointer"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
@@ -633,7 +659,7 @@ export function OrderIntakeWizard() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                 />
               </svg>
-              <span>Continue with Google</span>
+              <span>{signingIn ? 'Connecting to Google...' : 'Continue with Google'}</span>
             </button>
           </div>
 

@@ -16,7 +16,7 @@ export interface PersonDetails {
   address: string;
   phone: string;
   email: string;
-  aadhaarLast4: string; // strictly last 4 digits only
+  aadhaarLast4?: string; // Optional Aadhaar or ID proof number
   pan?: string;
 }
 

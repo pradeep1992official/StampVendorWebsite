@@ -12,8 +12,14 @@ export function validatePhone(phone: string): boolean {
   return /^[6-9]\d{9}$/.test(clean);
 }
 
-export function validateAadhaarLast4(last4: string): boolean {
-  return /^\d{4}$/.test(last4);
+export function validateAadhaar(aadhaar?: string): boolean {
+  if (!aadhaar || aadhaar.trim() === '') return true; // optional
+  const clean = aadhaar.replace(/[\s-]/g, '');
+  return /^\d{4,12}$/.test(clean);
+}
+
+export function validateAadhaarLast4(aadhaar?: string): boolean {
+  return validateAadhaar(aadhaar);
 }
 
 export function validatePan(pan: string): boolean {
@@ -45,13 +51,12 @@ test('Phone Number Validation: Indian 10-digit mobile standards', () => {
   assert.equal(validatePhone(''), false, 'Empty phone is invalid');
 });
 
-test('Aadhaar Privacy: strictly 4 digits only', () => {
-  assert.equal(validateAadhaarLast4('1234'), true, 'Valid 4 digits');
-  assert.equal(validateAadhaarLast4('0000'), true, 'Valid zeros');
-  assert.equal(validateAadhaarLast4('123456789012'), false, 'Full 12-digit Aadhaar must be rejected');
-  assert.equal(validateAadhaarLast4('123'), false, '3 digits rejected');
-  assert.equal(validateAadhaarLast4('abcd'), false, 'Letters rejected');
-  assert.equal(validateAadhaarLast4(''), false, 'Empty string rejected');
+test('Aadhaar Number: Optional and accepts standard numeric identification', () => {
+  assert.equal(validateAadhaar(''), true, 'Empty Aadhaar allowed because it is optional');
+  assert.equal(validateAadhaar('1234'), true, '4 digits allowed');
+  assert.equal(validateAadhaar('123456789012'), true, 'Full 12-digit Aadhaar allowed');
+  assert.equal(validateAadhaar('1234 5678 9012'), true, 'Formatted 12-digit Aadhaar allowed');
+  assert.equal(validateAadhaar('abcd'), false, 'Non-numeric letters rejected');
 });
 
 test('PAN Number Validation (Optional)', () => {

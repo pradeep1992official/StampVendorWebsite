@@ -25,15 +25,6 @@ export const OwnerStep: React.FC<OwnerStepProps> = ({ data, onChange, errors }) 
         </div>
       </div>
 
-      {/* Aadhaar Privacy Shield Notice */}
-      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-xs text-emerald-950 flex items-start gap-3">
-        <Lock className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-        <div className="leading-relaxed">
-          <strong className="font-semibold text-emerald-900 block mb-0.5">UIDAI Data Protection Guarantee:</strong>
-          We record <strong>only the last 4 digits</strong> of your Aadhaar card for tenancy identification on the non-judicial stamp paper. Never enter a full 12-digit Aadhaar number.
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Full Name */}
         <div className="sm:col-span-2">
@@ -156,37 +147,29 @@ export const OwnerStep: React.FC<OwnerStepProps> = ({ data, onChange, errors }) 
           {errors.email && <p id="owner-email-error" className="text-xs text-rose-600 mt-1">{errors.email}</p>}
         </div>
 
-        {/* Aadhaar Last 4 Digits */}
+        {/* Aadhaar Number (Optional) */}
         <div>
           <label htmlFor="owner-aadhaar" className="block text-xs font-bold text-stone-700 mb-1">
-            Aadhaar Last 4 Digits Only *
+            Aadhaar Number (Optional)
           </label>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs bg-stone-100 px-3 py-2.5 rounded-xl border border-stone-200 text-stone-500 select-none">
-              XXXX - XXXX -
-            </span>
-            <input
-              id="owner-aadhaar"
-              type="text"
-              inputMode="numeric"
-              maxLength={4}
-              required
-              value={data.aadhaarLast4 || ''}
-              onChange={(e) => onChange({ aadhaarLast4: e.target.value.replace(/[^0-9]/g, '') })}
-              placeholder="1234"
-              aria-invalid={!!errors.aadhaarLast4}
-              aria-describedby={errors.aadhaarLast4 ? 'owner-aadhaar-error' : undefined}
-              className={`w-28 px-3.5 py-2.5 rounded-xl border text-sm font-mono tracking-widest text-center text-stone-900 focus:outline-none focus:ring-2 ${
-                errors.aadhaarLast4
-                  ? 'border-rose-400 bg-rose-50/50 focus:ring-rose-400'
-                  : 'border-stone-300 bg-white focus:ring-amber-500'
-              }`}
-            />
-          </div>
-          {errors.aadhaarLast4 ? (
+          <input
+            id="owner-aadhaar"
+            type="text"
+            inputMode="numeric"
+            maxLength={14}
+            value={data.aadhaarLast4 || ''}
+            onChange={(e) => onChange({ aadhaarLast4: e.target.value.replace(/[^0-9\s-]/g, '') })}
+            placeholder="e.g. 1234 5678 9012"
+            aria-invalid={!!errors.aadhaarLast4}
+            aria-describedby={errors.aadhaarLast4 ? 'owner-aadhaar-error' : undefined}
+            className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-mono text-stone-900 focus:outline-none focus:ring-2 ${
+              errors.aadhaarLast4
+                ? 'border-rose-400 bg-rose-50/50 focus:ring-rose-400'
+                : 'border-stone-300 bg-white focus:ring-amber-500'
+            }`}
+          />
+          {errors.aadhaarLast4 && (
             <p id="owner-aadhaar-error" className="text-xs text-rose-600 mt-1">{errors.aadhaarLast4}</p>
-          ) : (
-            <p className="text-[11px] text-stone-400 mt-1">Strictly 4 digits only</p>
           )}
         </div>
 

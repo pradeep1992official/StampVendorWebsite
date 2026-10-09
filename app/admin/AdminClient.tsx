@@ -37,15 +37,17 @@ import {
 import { Order, OrderStatus } from '@/lib/types';
 import { checkIsAdmin } from '@/lib/order-service';
 import { VENDOR_CONFIG } from '@/src/config/vendor';
-import { ADMIN_EMAIL, isUserAdmin } from '@/src/config/admin';
+import { ADMIN_EMAIL, ADMIN_EMAILS, isUserAdmin } from '@/src/config/admin';
 import { RentalAgreementDocument } from '@/components/agreement/RentalAgreementDocument';
 import { DEFAULT_PRICING, PricingConfig } from '@/src/config/pricing';
 import { getPricingConfig, savePricingConfig } from '@/lib/pricing-service';
 
 export function AdminClient() {
-  const { user, loading: authLoading, signInWithGoogle } = useAuth();
+  const { user, loading: authLoading, signInWithGoogle, authError } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [checkingRole, setCheckingRole] = useState<boolean>(true);
+  const [signingIn, setSigningIn] = useState<boolean>(false);
+  const [localSignInError, setLocalSignInError] = useState<string | null>(null);
 
   // Active Tab: Orders Fulfillment or Pricing Settings
   const [activeTab, setActiveTab] = useState<'orders' | 'pricing'>('orders');
@@ -361,16 +363,39 @@ export function AdminClient() {
               Vendor Management Desk
             </h1>
             <p className="text-xs text-stone-600 leading-relaxed">
-              This area is restricted to the certified stamp vendor desk (<code className="font-mono bg-stone-100 px-1.5 py-0.5 rounded text-[11px] text-stone-800 font-semibold">{ADMIN_EMAIL}</code>). Access requires signing in with the designated administrator account.
+              This area is restricted to authorized stamp vendor administrators ({ADMIN_EMAILS.map((e, idx) => (
+                <span key={e}>
+                  {idx > 0 && ', '}
+                  <code className="font-mono bg-stone-100 px-1.5 py-0.5 rounded text-[11px] text-stone-800 font-semibold">{e}</code>
+                </span>
+              ))}).
             </p>
           </div>
 
+          {(authError || localSignInError) && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs p-3 rounded-xl text-left">
+              {authError || localSignInError}
+            </div>
+          )}
+
           {!user ? (
             <button
-              onClick={() => signInWithGoogle()}
-              className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3.5 px-4 rounded-xl text-xs uppercase tracking-wider transition-colors cursor-pointer"
+              onClick={async () => {
+                setLocalSignInError(null);
+                setSigningIn(true);
+                try {
+                  await signInWithGoogle();
+                } catch (err: unknown) {
+                  const message = (err as { message?: string })?.message || 'Sign in popup was blocked or failed. Please check browser popups.';
+                  setLocalSignInError(message);
+                } finally {
+                  setSigningIn(false);
+                }
+              }}
+              disabled={signingIn}
+              className="w-full bg-stone-900 hover:bg-stone-800 disabled:opacity-50 text-white font-bold py-3.5 px-4 rounded-xl text-xs uppercase tracking-wider transition-colors cursor-pointer"
             >
-              Sign In with Authorized Google Account
+              {signingIn ? 'Opening Google Sign-In...' : 'Sign In with Authorized Google Account'}
             </button>
           ) : (
             <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-xs text-stone-700 text-left space-y-2">
@@ -378,7 +403,7 @@ export function AdminClient() {
                 Currently signed in as: <strong>{user.email}</strong>
               </p>
               <p className="text-stone-500 text-[11px] leading-relaxed">
-                Your account ({user.email}) is not authorized to access the fulfillment desk. Please sign in with the authorized vendor email (<code className="font-mono bg-stone-200/70 px-1 py-0.5 rounded text-[11px] text-stone-800">{ADMIN_EMAIL}</code>).
+                Your account ({user.email}) is not recognized as an authorized vendor administrator. Allowed emails: {ADMIN_EMAILS.join(', ')}.
               </p>
             </div>
           )}

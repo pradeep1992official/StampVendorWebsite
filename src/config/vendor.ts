@@ -8,7 +8,7 @@ export { ADMIN_EMAIL, isUserAdmin } from './admin';
 
 export interface VendorFees {
   stampDuty: {
-    amount: number | null; // null until formula/rule is provided
+    amount: number | null;
     displayLabel: string;
     description: string;
   };
@@ -39,6 +39,7 @@ export interface VendorConfig {
   whatsappPrefilledMessage: string;
   email: string;
   workingHours: string;
+  courierPartner: string;
   fees: VendorFees;
   placeholdersTodoList: Array<{
     field: string;
@@ -48,87 +49,37 @@ export interface VendorConfig {
 }
 
 export const VENDOR_CONFIG: VendorConfig = {
-  name: 'SAIRAM NET CENTER',
-  tradeName: 'SAIRAM NET',
-  licenceNumber: 'TNCHN2026-52-9852',
-  issuingAuthority: '[REGISTRATION DEPARTMENT JURISDICTION - TO BE PROVIDED BY VENDOR]',
-  addressLine1: '[SHOP ADDRESS LINE 1 - TO BE PROVIDED BY VENDOR]',
-  addressLine2: '[SHOP ADDRESS LINE 2 - TO BE PROVIDED BY VENDOR]',
-  city: 'CHENNAI',
-  pincode: '600014',
+  name: 'Rental Agreement Service',
+  tradeName: 'TN Rental Agreement Service',
+  licenceNumber: '',
+  issuingAuthority: '',
+  addressLine1: '',
+  addressLine2: '',
+  city: 'Chennai',
+  pincode: '',
   state: 'Tamil Nadu, India',
-  phone: '9843216587',
-  whatsappNumber: '8144404504',
-  whatsappPrefilledMessage: 'Hello, I would like to inquire about rental agreement drafting on stamp paper.',
-  email: 'pradhiip92@gmail.com',
-  workingHours: '[WORKING HOURS - TO BE PROVIDED BY VENDOR]',
+  phone: '',
+  whatsappNumber: '',
+  whatsappPrefilledMessage: '',
+  email: 'pradeep1992official@gmail.com',
+  workingHours: '',
+  courierPartner: 'The Professional Couriers',
   fees: {
     stampDuty: {
-      amount: null, // "calculated per agreement" until rule is provided
+      amount: 100,
       displayLabel: 'Stamp Duty',
-      description: 'Calculated per agreement (based on tenure and monthly rent as per Tamil Nadu Stamp Act)',
+      description: 'Tamil Nadu Non-Judicial Stamp Paper duty for 11-month agreement',
     },
     serviceFee: {
-      amount: null,
-      displayLabel: 'Vendor Drafting & Stamping Fee',
-      description: 'Document formatting, customized drafting, and non-judicial stamp paper printing fee',
+      amount: 299,
+      displayLabel: 'Drafting & Stamping Fee',
+      description: 'Custom legal agreement formatting and stamp paper printing',
     },
     courierFee: {
-      amount: null,
-      displayLabel: 'Courier Charges',
-      description: 'Physical document packaging and courier delivery fee',
+      amount: 100,
+      displayLabel: 'Professional Courier Delivery',
+      description: 'Original physical stamp paper agreement dispatched via Professional Courier',
     },
   },
-  placeholdersTodoList: [
-    {
-      field: 'vendorName',
-      currentValue: '[VENDOR NAME - TO BE PROVIDED BY VENDOR]',
-      description: 'Official legal name of the certified stamp vendor',
-    },
-    {
-      field: 'tradeName',
-      currentValue: '[SHOP / FIRM NAME - TO BE PROVIDED BY VENDOR]',
-      description: 'Shop or agency trading name',
-    },
-    {
-      field: 'licenceNumber',
-      currentValue: '[LICENCE NUMBER - TO BE PROVIDED BY VENDOR]',
-      description: 'Registration Department stamp vendor licence number',
-    },
-    {
-      field: 'issuingAuthority',
-      currentValue: '[REGISTRATION DEPARTMENT JURISDICTION - TO BE PROVIDED BY VENDOR]',
-      description: 'Sub-Registrar jurisdiction or issuing office in Tamil Nadu',
-    },
-    {
-      field: 'shopAddress',
-      currentValue: '[SHOP ADDRESS - TO BE PROVIDED BY VENDOR]',
-      description: 'Physical counter address and pincode',
-    },
-    {
-      field: 'contactNumbers',
-      currentValue: '[PHONE & WHATSAPP - TO BE PROVIDED BY VENDOR]',
-      description: 'Customer contact phone and WhatsApp number',
-    },
-    {
-      field: 'emailAddress',
-      currentValue: '[EMAIL ADDRESS - TO BE PROVIDED BY VENDOR]',
-      description: 'Official support and enquiry email address',
-    },
-    {
-      field: 'workingHours',
-      currentValue: '[WORKING HOURS - TO BE PROVIDED BY VENDOR]',
-      description: 'Shop counter opening hours and operating days',
-    },
-    {
-      field: 'feeStructure',
-      currentValue: '[SERVICE & COURIER FEES - TO BE PROVIDED BY VENDOR]',
-      description: 'Vendor drafting fee and courier fee amounts',
-    },
-    {
-      field: 'stampDutyRule',
-      currentValue: '[STAMP DUTY CALCULATION RULE - TO BE PROVIDED BY VENDOR]',
-      description: 'Formula or slab for calculating stamp duty across tenure and rent',
-    },
-  ],
+  placeholdersTodoList: [],
 };
