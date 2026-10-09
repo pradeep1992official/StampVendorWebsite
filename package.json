@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "node --experimental-strip-types --test tests/validation.test.ts tests/fee-calculation.test.ts tests/security-rules-validation.test.ts tests/agreement-document.test.ts",
+    "test": "node --experimental-strip-types --test tests/validation.test.ts tests/fee-calculation.test.ts tests/security-rules-validation.test.ts tests/agreement-document.test.ts tests/pincode-utils.test.ts",
     "clean": "next clean"
   },
   "dependencies": {

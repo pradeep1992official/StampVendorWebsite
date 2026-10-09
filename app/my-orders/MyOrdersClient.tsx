@@ -202,10 +202,7 @@ export function MyOrdersClient() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 pb-5">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
-            Customer Dashboard
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-black text-stone-900 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-stone-900">
             My Rental Agreements
           </h1>
           <p className="text-xs text-stone-600 mt-0.5">

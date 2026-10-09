@@ -123,30 +123,6 @@ export const TenantStep: React.FC<TenantStepProps> = ({ data, onChange, errors }
           {errors.phone && <p id="tenant-phone-error" className="text-xs text-rose-600 mt-1">{errors.phone}</p>}
         </div>
 
-        {/* Email */}
-        <div>
-          <label htmlFor="tenant-email" className="block text-xs font-bold text-stone-700 mb-1">
-            Email Address *
-          </label>
-          <input
-            id="tenant-email"
-            type="email"
-            inputMode="email"
-            required
-            value={data.email || ''}
-            onChange={(e) => onChange({ email: e.target.value })}
-            placeholder="tenant@example.com"
-            aria-invalid={!!errors.email}
-            aria-describedby={errors.email ? 'tenant-email-error' : undefined}
-            className={`w-full px-3.5 py-2.5 rounded-xl border text-sm text-stone-900 focus:outline-none focus:ring-2 ${
-              errors.email
-                ? 'border-rose-400 bg-rose-50/50 focus:ring-rose-400'
-                : 'border-stone-300 bg-white focus:ring-amber-500'
-            }`}
-          />
-          {errors.email && <p id="tenant-email-error" className="text-xs text-rose-600 mt-1">{errors.email}</p>}
-        </div>
-
         {/* Aadhaar Number (Optional) */}
         <div>
           <label htmlFor="tenant-aadhaar" className="block text-xs font-bold text-stone-700 mb-1">

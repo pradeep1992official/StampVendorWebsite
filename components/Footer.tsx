@@ -32,7 +32,7 @@ export const Footer: React.FC = () => {
             <div className="space-y-2 pt-2 text-xs text-stone-400">
               <div className="flex items-center gap-2.5">
                 <Truck className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>Dispatched strictly via Professional Courier</span>
+                <span>Dispatched via Professional Courier</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-amber-500 shrink-0" />
@@ -48,7 +48,7 @@ export const Footer: React.FC = () => {
             <h5 className="font-bold text-white text-xs uppercase tracking-wider text-amber-400">Services</h5>
             <ul className="space-y-2 text-xs">
               <li>
-                <Link href="/rent-agreement" className="text-stone-400 hover:text-white transition-colors">
+                <Link href="/order" className="text-stone-400 hover:text-white transition-colors">
                   11-Month Rental Agreement
                 </Link>
               </li>
@@ -74,11 +74,6 @@ export const Footer: React.FC = () => {
           <div className="space-y-3">
             <h5 className="font-bold text-white text-xs uppercase tracking-wider text-amber-400">Support</h5>
             <ul className="space-y-2 text-xs">
-              <li>
-                <Link href="/about" className="text-stone-400 hover:text-white transition-colors">
-                  About Our Service
-                </Link>
-              </li>
               <li>
                 <Link href="/faq" className="text-stone-400 hover:text-white transition-colors">
                   Frequently Asked Questions

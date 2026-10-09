@@ -15,7 +15,7 @@ export interface PersonDetails {
   age: number | string;
   address: string;
   phone: string;
-  email: string;
+  email?: string;
   aadhaarLast4?: string; // Optional Aadhaar or ID proof number
   pan?: string;
 }
@@ -26,6 +26,7 @@ export interface PropertyDetails {
   pincode: string;
   propertyType: 'House' | 'Flat' | 'Commercial Shop';
   furnishing: 'Unfurnished' | 'Semi-Furnished' | 'Fully Furnished';
+  businessName?: string;
 }
 
 export interface AgreementTerms {

@@ -42,7 +42,6 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
       {/* Header Badge */}
       <div className="bg-stone-900 text-stone-100 px-6 py-5 flex items-center justify-between">
         <div>
-          <span className="text-xs uppercase tracking-wider text-amber-400 font-bold">Official Rate Schedule</span>
           <h3 className="text-lg font-black text-white">Rental Agreement Drafting & Stamping</h3>
         </div>
         <div className="text-right">
@@ -220,7 +219,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
       <div className="bg-stone-50 px-6 py-5 border-t border-stone-200/80 space-y-2.5">
         <div className="flex items-center gap-2 text-xs text-stone-700 font-medium">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>Authentic Tamil Nadu non-judicial stamp paper</span>
+          <span>Tamil Nadu non-judicial stamp paper</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-stone-700 font-medium">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -228,7 +227,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
         </div>
         <div className="flex items-center gap-2 text-xs text-stone-700 font-medium">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>Dispatched strictly via Professional Courier with tracking ID</span>
+          <span>Dispatched via Professional Courier with tracking ID</span>
         </div>
 
         {showCta && (

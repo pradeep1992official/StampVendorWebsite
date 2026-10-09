@@ -36,7 +36,7 @@ export default function HomePage() {
               </h1>
 
               <p className="text-stone-300 text-base sm:text-lg leading-relaxed max-w-2xl font-normal">
-                Online rental agreement drafting service. Submit your agreement details and proofs online, get your drafted agreement printed on authentic non-judicial stamp paper, and delivered via Professional Courier.
+                Submit your tenancy details online and get your agreement drafted on authentic Tamil Nadu stamp paper, delivered directly to your doorstep.
               </p>
 
               {/* Core Features */}
@@ -62,7 +62,7 @@ export default function HomePage() {
               {/* Action Buttons */}
               <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <Link
-                  href="/rent-agreement"
+                  href="/order"
                   className="bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold px-7 py-3.5 rounded-xl shadow-lg shadow-amber-500/20 text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-transform active:scale-95"
                 >
                   <FileText className="w-5 h-5 text-stone-950" />
@@ -225,7 +225,7 @@ export default function HomePage() {
             Transparent Pricing
           </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-stone-900 tracking-tight">
-            Itemized Pricing Summary
+            Pricing Summary
           </h2>
           <p className="text-stone-600 text-sm sm:text-base">
             Stamp duty, vendor service fee, and courier charges are shown separately.

@@ -5,17 +5,20 @@ import { FileText, IndianRupee, Calendar, Truck, Stamp, CheckCircle2 } from 'luc
 import { AgreementTerms } from '@/lib/types';
 import { DEFAULT_PRICING, PricingConfig, calculateOrderPrice } from '@/src/config/pricing';
 import { getPricingConfig } from '@/lib/pricing-service';
+import { isChennaiPincode } from '@/lib/pincode-utils';
 
 interface AgreementTermsStepProps {
   data: Partial<AgreementTerms>;
   onChange: (fields: Partial<AgreementTerms>) => void;
   errors: Record<string, string>;
+  propertyPincode?: string;
 }
 
 export const AgreementTermsStep: React.FC<AgreementTermsStepProps> = ({
   data,
   onChange,
   errors,
+  propertyPincode,
 }) => {
   const [pricingConfig, setPricingConfig] = useState<PricingConfig>(DEFAULT_PRICING);
 
@@ -292,8 +295,14 @@ export const AgreementTermsStep: React.FC<AgreementTermsStepProps> = ({
                   </option>
                 </select>
                 <p className="text-[11px] text-stone-500 mt-1">
-                  {location === 'Within Chennai' ? 'Local Chennai doorstep courier' : 'Within Tamilnadu — any district'}
+                  {location === 'Within Chennai' ? 'Local Chennai doorstep courier (Rs. 350 package)' : 'Within Tamilnadu (any district) — Rs. 400 package'}
                 </p>
+                {propertyPincode && isChennaiPincode(propertyPincode) && location === 'Within Chennai' && (
+                  <p className="text-[11px] text-emerald-700 font-semibold mt-1 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Auto-selected based on Chennai postal PIN ({propertyPincode})</span>
+                  </p>
+                )}
               </div>
 
               {/* Dropdown 3: Notary Signature */}

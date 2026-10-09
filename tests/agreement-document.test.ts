@@ -52,4 +52,5 @@ test('Agreement Formatter: Notice Period & Property Descriptions', () => {
   assert.equal(formatPropertyDescription('Flat', 'Semi-Furnished'), 'Semi-Furnished Residential Flat / Apartment premises');
   assert.equal(formatPropertyDescription('House', 'Unfurnished'), 'Independent Residential House premises');
   assert.equal(formatPropertyDescription('Commercial Shop'), 'Commercial Shop / Office premises');
+  assert.equal(formatPropertyDescription('Commercial Shop', 'Unfurnished', 'Sri Balaji Traders'), 'Commercial Shop / Office premises (for "Sri Balaji Traders")');
 });

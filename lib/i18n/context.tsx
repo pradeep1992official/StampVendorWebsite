@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useSyncExternalStore, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { en, TranslationDictionary } from './en';
 import { ta } from './ta';
 
@@ -14,44 +14,48 @@ interface I18nContextType {
 
 const I18nContext = createContext<I18nContextType | null>(null);
 
-let memoryLang: Language = 'en';
-
-function subscribe(callback: () => void) {
-  if (typeof window === 'undefined') return () => {};
-  const handler = () => callback();
-  window.addEventListener('storage', handler);
-  window.addEventListener('tn_lang_change', handler);
-  return () => {
-    window.removeEventListener('storage', handler);
-    window.removeEventListener('tn_lang_change', handler);
-  };
-}
-
-function getSnapshot(): Language {
-  if (typeof window === 'undefined') return 'en';
-  try {
-    const saved = localStorage.getItem('tn_stamp_lang');
-    return saved === 'ta' ? 'ta' : 'en';
-  } catch {
-    return memoryLang;
-  }
-}
-
-function getServerSnapshot(): Language {
-  return 'en';
-}
-
 export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const lang = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const [lang, setLangState] = useState<Language>('en');
 
   useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
+    const timer = setTimeout(() => {
+      try {
+        const saved = localStorage.getItem('tn_stamp_lang') as Language;
+        if (saved === 'ta' || saved === 'en') {
+          setLangState(saved);
+          document.documentElement.lang = saved;
+        }
+      } catch {
+        // Fallback
+      }
+    }, 0);
+
+    const handler = () => {
+      try {
+        const saved = localStorage.getItem('tn_stamp_lang') as Language;
+        if (saved === 'ta' || saved === 'en') {
+          setLangState(saved);
+          document.documentElement.lang = saved;
+        }
+      } catch {
+        // Fallback
+      }
+    };
+
+    window.addEventListener('storage', handler);
+    window.addEventListener('tn_lang_change', handler);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('storage', handler);
+      window.removeEventListener('tn_lang_change', handler);
+    };
+  }, []);
 
   const setLang = (newLang: Language) => {
-    memoryLang = newLang;
+    setLangState(newLang);
     try {
       localStorage.setItem('tn_stamp_lang', newLang);
+      document.documentElement.lang = newLang;
       window.dispatchEvent(new Event('tn_lang_change'));
     } catch {
       // Fallback

@@ -242,7 +242,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             <div><span className="text-stone-400">Father/Spouse:</span> {ownerData.relativeName}</div>
             <div><span className="text-stone-400">Age:</span> {ownerData.age} Years</div>
             <div><span className="text-stone-400">Phone:</span> {ownerData.phone}</div>
-            <div><span className="text-stone-400">Email:</span> {ownerData.email}</div>
+            {ownerData.email && <div><span className="text-stone-400">Email:</span> {ownerData.email}</div>}
             {ownerData.aadhaarLast4 && (
               <div><span className="text-stone-400">Aadhaar:</span> <strong className="font-mono text-stone-900">{ownerData.aadhaarLast4}</strong></div>
             )}
@@ -269,7 +269,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             <div><span className="text-stone-400">Father/Spouse:</span> {tenantData.relativeName}</div>
             <div><span className="text-stone-400">Age:</span> {tenantData.age} Years</div>
             <div><span className="text-stone-400">Phone:</span> {tenantData.phone}</div>
-            <div><span className="text-stone-400">Email:</span> {tenantData.email}</div>
+            {tenantData.email && <div><span className="text-stone-400">Email:</span> {tenantData.email}</div>}
             {tenantData.aadhaarLast4 && (
               <div><span className="text-stone-400">Aadhaar:</span> <strong className="font-mono text-stone-900">{tenantData.aadhaarLast4}</strong></div>
             )}
@@ -294,6 +294,12 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-stone-700">
             <div><span className="text-stone-400">Type:</span> {propertyData.propertyType}</div>
             <div><span className="text-stone-400">Furnishing:</span> {propertyData.furnishing}</div>
+            {propertyData.businessName && (
+              <div className="sm:col-span-2">
+                <span className="text-stone-400">Business / Commercial Name:</span>{' '}
+                <strong className="text-stone-900">{propertyData.businessName}</strong>
+              </div>
+            )}
             <div><span className="text-stone-400">City / Taluk:</span> {propertyData.city}</div>
             <div><span className="text-stone-400">Pincode:</span> {propertyData.pincode}</div>
             <div className="sm:col-span-2"><span className="text-stone-400">Premises Address:</span> {propertyData.fullAddress}</div>

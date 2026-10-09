@@ -89,7 +89,7 @@ export default function HowItWorksPage() {
 
             <div className="pt-2">
               <Link
-                href="/rent-agreement"
+                href="/order"
                 className="bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all shadow-md active:translate-y-0.5 inline-flex items-center gap-2"
               >
                 <span>Start Rental Agreement</span>

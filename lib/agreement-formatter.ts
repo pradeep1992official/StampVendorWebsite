@@ -80,7 +80,7 @@ export function formatNoticePeriodMonths(days?: number): string {
  * Formats property type description for Clause preamble:
  * e.g. "Residential Flat premises" or "Independent Residential House"
  */
-export function formatPropertyDescription(type?: string, furnishing?: string): string {
+export function formatPropertyDescription(type?: string, furnishing?: string, businessName?: string): string {
   if (!type) return 'Residential premises';
   const furn = furnishing && furnishing !== 'Unfurnished' ? `${furnishing} ` : '';
   switch (type) {
@@ -89,7 +89,9 @@ export function formatPropertyDescription(type?: string, furnishing?: string): s
     case 'House':
       return `${furn}Independent Residential House premises`;
     case 'Commercial Shop':
-      return `${furn}Commercial Shop / Office premises`;
+      return businessName?.trim()
+        ? `${furn}Commercial Shop / Office premises (for "${businessName.trim()}")`
+        : `${furn}Commercial Shop / Office premises`;
     default:
       return `${furn}${type} premises`;
   }

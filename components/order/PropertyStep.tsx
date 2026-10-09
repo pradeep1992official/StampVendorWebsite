@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Home } from 'lucide-react';
+import { Home, CheckCircle2 } from 'lucide-react';
 import { PropertyDetails } from '@/lib/types';
+import { isChennaiPincode } from '@/lib/pincode-utils';
 
 interface PropertyStepProps {
   data: Partial<PropertyDetails>;
@@ -76,6 +77,38 @@ export const PropertyStep: React.FC<PropertyStepProps> = ({ data, onChange, erro
           {errors.furnishing && <p id="property-furnishing-error" className="text-xs text-rose-600 mt-1">{errors.furnishing}</p>}
         </div>
 
+        {/* Business Name (appears when Commercial is selected) */}
+        {data.propertyType === 'Commercial Shop' && (
+          <div className="sm:col-span-2 animate-in fade-in slide-in-from-top-1 duration-200">
+            <label htmlFor="property-businessName" className="block text-xs font-bold text-stone-700 mb-1">
+              Business / Commercial Enterprise Name *
+            </label>
+            <input
+              id="property-businessName"
+              type="text"
+              required
+              value={data.businessName || ''}
+              onChange={(e) => onChange({ businessName: e.target.value })}
+              placeholder="e.g. Sri Balaji Enterprises / Nexus Infotech"
+              aria-invalid={!!errors.businessName}
+              aria-describedby={errors.businessName ? 'property-businessName-error' : undefined}
+              className={`w-full px-3.5 py-2.5 rounded-xl border text-sm text-stone-900 focus:outline-none focus:ring-2 bg-white ${
+                errors.businessName
+                  ? 'border-rose-400 bg-rose-50/50 focus:ring-rose-400'
+                  : 'border-stone-300 focus:ring-amber-500'
+              }`}
+            />
+            {errors.businessName && (
+              <p id="property-businessName-error" className="text-xs text-rose-600 mt-1">
+                {errors.businessName}
+              </p>
+            )}
+            <p className="text-[11px] text-stone-500 mt-1">
+              Specify the commercial firm, retail shop, or trade name to be operated on these premises.
+            </p>
+          </div>
+        )}
+
         {/* City / Taluk */}
         <div>
           <label htmlFor="property-city" className="block text-xs font-bold text-stone-700 mb-1">
@@ -122,6 +155,17 @@ export const PropertyStep: React.FC<PropertyStepProps> = ({ data, onChange, erro
             }`}
           />
           {errors.pincode && <p id="property-pincode-error" className="text-xs text-rose-600 mt-1">{errors.pincode}</p>}
+          {!errors.pincode && data.pincode && data.pincode.length === 6 && isChennaiPincode(data.pincode) && (
+            <p className="text-[11px] text-emerald-700 font-semibold mt-1 flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Chennai Region PIN — auto-selecting Within Chennai (Rs. 350 package)</span>
+            </p>
+          )}
+          {!errors.pincode && data.pincode && data.pincode.length === 6 && !isChennaiPincode(data.pincode) && /^6\d{5}$/.test(data.pincode) && (
+            <p className="text-[11px] text-stone-600 font-medium mt-1">
+              Tamil Nadu District PIN — auto-selecting Within Tamilnadu (Rs. 400 package)
+            </p>
+          )}
         </div>
 
         {/* Full Property Premises Address */}

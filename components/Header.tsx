@@ -26,11 +26,9 @@ export const Header: React.FC<HeaderProps> = ({ onStartAgreement }) => {
 
   const navLinks = [
     { label: t.nav.home, href: '/' },
-    { label: t.nav.rentAgreement, href: '/rent-agreement' },
     { label: t.nav.howItWorks, href: '/how-it-works' },
     { label: t.nav.pricing, href: '/pricing' },
     { label: t.nav.faq, href: '/faq' },
-    { label: t.nav.about, href: '/about' },
     { label: t.nav.contact, href: '/contact' },
     { label: t.nav.trackOrder, href: '/track' },
   ];

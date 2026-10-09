@@ -31,6 +31,7 @@ import {
   Order 
 } from '@/lib/types';
 import { saveDraft, getDraft, deleteDraft, createOrder } from '@/lib/order-service';
+import { detectCourierRegion } from '@/lib/pincode-utils';
 
 export function OrderIntakeWizard() {
   const { user, loading: authLoading, signInWithGoogle, authError } = useAuth();
@@ -335,7 +336,7 @@ export function OrderIntakeWizard() {
     if (!ownerData.phone || !/^[6-9]\d{9}$/.test(ownerData.phone)) {
       errs.phone = 'Valid 10-digit Indian mobile number required (starting with 6-9)';
     }
-    if (!ownerData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerData.email)) {
+    if (ownerData.email && ownerData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerData.email)) {
       errs.email = 'Valid email address required';
     }
     if (ownerData.aadhaarLast4 && ownerData.aadhaarLast4.trim()) {
@@ -370,7 +371,7 @@ export function OrderIntakeWizard() {
     if (!tenantData.phone || !/^[6-9]\d{9}$/.test(tenantData.phone)) {
       errs.phone = 'Valid 10-digit Indian mobile number required (starting with 6-9)';
     }
-    if (!tenantData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(tenantData.email)) {
+    if (tenantData.email && tenantData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(tenantData.email)) {
       errs.email = 'Valid email address required';
     }
     if (tenantData.aadhaarLast4 && tenantData.aadhaarLast4.trim()) {
@@ -394,6 +395,11 @@ export function OrderIntakeWizard() {
   const validateProperty = (): boolean => {
     const errs: Record<string, string> = {};
     if (!propertyData.propertyType) errs.propertyType = 'Select property type';
+    if (propertyData.propertyType === 'Commercial Shop') {
+      if (!propertyData.businessName?.trim() || propertyData.businessName.trim().length < 2) {
+        errs.businessName = 'Business or commercial enterprise name is required';
+      }
+    }
     if (!propertyData.furnishing) errs.furnishing = 'Select furnishing status';
     if (!propertyData.city?.trim() || propertyData.city.trim().length < 2) {
       errs.city = 'City or Taluk in Tamil Nadu is required';
@@ -679,10 +685,7 @@ export function OrderIntakeWizard() {
       {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
-            Online Intake Desk
-          </span>
-          <h1 className="text-2xl font-black text-stone-900 mt-1">
+          <h1 className="text-2xl font-black text-stone-900">
             Rental Agreement Application
           </h1>
         </div>
@@ -826,6 +829,7 @@ export function OrderIntakeWizard() {
         {currentStep === 4 && (
           <AgreementTermsStep
             data={termsData}
+            propertyPincode={propertyData.pincode}
             onChange={(fields) => {
               setTermsData((prev) => ({ ...prev, ...fields }));
               setErrors({});

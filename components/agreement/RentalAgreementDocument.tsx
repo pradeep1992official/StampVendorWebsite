@@ -64,7 +64,7 @@ export const RentalAgreementDocument: React.FC<RentalAgreementDocumentProps> = (
   const tenantAge = tenant.age ? `${tenant.age}` : '';
   const tenantAddress = cleanAddress(tenant.address);
 
-  const propertyDesc = formatPropertyDescription(prop.propertyType, prop.furnishing);
+  const propertyDesc = formatPropertyDescription(prop.propertyType, prop.furnishing, prop.businessName);
   const propertyFullAddress = prop.fullAddress 
     ? `${prop.fullAddress}${prop.city ? `, ${prop.city}` : ''}${prop.pincode ? ` - ${prop.pincode}` : ''}`
     : '';
