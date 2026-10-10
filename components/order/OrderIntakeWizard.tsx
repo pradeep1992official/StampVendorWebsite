@@ -94,6 +94,12 @@ export function OrderIntakeWizard() {
   const [submittingOrder, setSubmittingOrder] = useState<boolean>(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
+  const [pendingPaymentOrderId, setPendingPaymentOrderId] = useState<string | null>(null);
+  const [phonePeCheckout, setPhonePeCheckout] = useState<{
+    redirectUrl: string;
+    merchantOrderId: string;
+    initiatedAt: number;
+  } | null>(null);
 
   // Validation Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -187,6 +193,8 @@ export function OrderIntakeWizard() {
     setDraftLoadError(null);
     setSubmissionError(null);
     setConfirmedOrder(null);
+    setPendingPaymentOrderId(null);
+    setPhonePeCheckout(null);
   }, []);
 
   // Cleanup timers on unmount
@@ -530,32 +538,43 @@ export function OrderIntakeWizard() {
 
     setSubmittingOrder(true);
     try {
-      // Generate formatted order ID
-      const orderId = `TNR_${Date.now().toString().slice(-6)}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      let orderId = pendingPaymentOrderId;
+      if (!orderId) {
+        orderId = `TNR_${Date.now().toString().slice(-6)}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
-      const orderPayload = {
-        orderId,
-        ownerUid: user.uid,
-        customerEmail: user.email || ownerData.email || '',
-        customerPhone: ownerData.phone,
-        ownerDetails: ownerData as PersonDetails,
-        tenantDetails: tenantData as PersonDetails,
-        propertyDetails: propertyData as PropertyDetails,
-        agreementTerms: termsData as AgreementTerms,
-        proofUploads: proofData as ProofUploads,
-      };
+        await createOrder({
+          orderId,
+          ownerUid: user.uid,
+          customerEmail: user.email || ownerData.email || '',
+          customerPhone: ownerData.phone,
+          ownerDetails: ownerData as PersonDetails,
+          tenantDetails: tenantData as PersonDetails,
+          propertyDetails: propertyData as PropertyDetails,
+          agreementTerms: termsData as AgreementTerms,
+          proofUploads: proofData as ProofUploads,
+        });
+        setPendingPaymentOrderId(orderId);
+      }
 
-      await createOrder(orderPayload);
-
-      // Successfully saved order
-      setConfirmedOrder({
-        ...orderPayload,
-        status: 'Submitted',
-        payment: { status: 'Pending' },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      const idToken = await user.getIdToken();
+      const paymentResponse = await fetch('/api/payment/phonepe/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ orderId }),
       });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const paymentResult = await paymentResponse.json();
+      if (!paymentResponse.ok || !paymentResult.available || !paymentResult.redirectUrl) {
+        throw new Error(paymentResult.error || 'Unable to start PhonePe payment. Your order is saved and you can retry.');
+      }
+
+      setPhonePeCheckout({
+        redirectUrl: paymentResult.redirectUrl,
+        merchantOrderId: paymentResult.merchantOrderId,
+        initiatedAt: paymentResult.initiatedAt,
+      });
     } catch (err: unknown) {
       console.error('Order creation failed:', err);
       setSubmissionError(
@@ -565,6 +584,11 @@ export function OrderIntakeWizard() {
       setSubmittingOrder(false);
     }
   };
+
+  const handlePhonePeCheckoutCancelled = useCallback(() => {
+    setPhonePeCheckout(null);
+    setSubmissionError('PhonePe checkout was cancelled. You can retry payment when ready.');
+  }, []);
 
   // If order was confirmed, show the receipt confirmation screen
   if (confirmedOrder) {
@@ -838,6 +862,10 @@ export function OrderIntakeWizard() {
             onSubmitOrder={handleSubmitOrder}
             submitting={submittingOrder}
             submissionError={submissionError}
+            paymentPending={Boolean(pendingPaymentOrderId)}
+            phonePeCheckout={phonePeCheckout}
+            paymentOrderId={pendingPaymentOrderId}
+            onCheckoutCancelled={handlePhonePeCheckoutCancelled}
           />
         )}
 

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import Script from 'next/script';
 import { 
   CheckCircle2, 
   Edit3, 
@@ -28,6 +29,26 @@ interface ReviewStepProps {
   onSubmitOrder: () => Promise<void>;
   submitting: boolean;
   submissionError: string | null;
+  paymentPending: boolean;
+  phonePeCheckout: {
+    redirectUrl: string;
+    merchantOrderId: string;
+    initiatedAt: number;
+  } | null;
+  paymentOrderId: string | null;
+  onCheckoutCancelled: () => void;
+}
+
+declare global {
+  interface Window {
+    PhonePeCheckout?: {
+      transact: (options: {
+        tokenUrl: string;
+        type: 'IFRAME';
+        callback: (response: string) => void;
+      }) => void;
+    };
+  }
 }
 
 interface FeeState {
@@ -58,8 +79,15 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
   onSubmitOrder,
   submitting,
   submissionError,
+  paymentPending,
+  phonePeCheckout,
+  paymentOrderId,
+  onCheckoutCancelled,
 }) => {
   const [showAgreementPreview, setShowAgreementPreview] = useState<boolean>(false);
+  const [phonePeSdkReady, setPhonePeSdkReady] = useState(false);
+  const [phonePeSdkError, setPhonePeSdkError] = useState<string | null>(null);
+  const checkoutAttemptRef = useRef<string | null>(null);
   const [feeState, setFeeState] = useState<FeeState>({
     loading: true,
     feesConfigured: false,
@@ -134,6 +162,47 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
     termsData.includeNotary
   ]);
 
+  useEffect(() => {
+    if (!phonePeSdkReady || !phonePeCheckout) return;
+    if (checkoutAttemptRef.current === phonePeCheckout.merchantOrderId) return;
+
+    const checkout = window.PhonePeCheckout;
+    checkoutAttemptRef.current = phonePeCheckout.merchantOrderId;
+    const launchTimer = window.setTimeout(() => {
+      if (!checkout?.transact) {
+        setPhonePeSdkError('PhonePe checkout could not load. Use the secure redirect link below.');
+        return;
+      }
+
+      try {
+        checkout.transact({
+          tokenUrl: phonePeCheckout.redirectUrl,
+          type: 'IFRAME',
+          callback: (response) => {
+            if (response === 'USER_CANCEL') {
+              checkoutAttemptRef.current = null;
+              onCheckoutCancelled();
+              return;
+            }
+
+            if (response === 'CONCLUDED' && paymentOrderId) {
+              const returnUrl = new URL('/payment/phonepe/return', window.location.origin);
+              returnUrl.searchParams.set('orderId', paymentOrderId);
+              returnUrl.searchParams.set('paymentStartedAt', String(phonePeCheckout.initiatedAt));
+              window.location.assign(returnUrl.toString());
+            }
+          },
+        });
+      } catch (error) {
+        checkoutAttemptRef.current = null;
+        console.error('PhonePe iframe checkout failed to open:', error);
+        setPhonePeSdkError('PhonePe checkout could not open. Use the secure redirect link below.');
+      }
+    }, 0);
+
+    return () => window.clearTimeout(launchTimer);
+  }, [phonePeSdkReady, phonePeCheckout, paymentOrderId, onCheckoutCancelled]);
+
   if (showAgreementPreview) {
     return (
       <div className="animate-in fade-in duration-200">
@@ -164,6 +233,21 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-150">
+      <Script
+        src="https://mercury.phonepe.com/web/bundle/checkout.js"
+        strategy="afterInteractive"
+        onLoad={() => {
+          if (window.PhonePeCheckout?.transact) {
+            setPhonePeSdkReady(true);
+          } else {
+            setPhonePeSdkError('PhonePe checkout could not load. Use the secure redirect link below.');
+          }
+        }}
+        onError={() => {
+          setPhonePeSdkReady(false);
+          setPhonePeSdkError('PhonePe checkout could not load. Use the secure redirect link below.');
+        }}
+      />
       <div className="border-b border-stone-200 pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -387,22 +471,38 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
           </div>
         )}
 
+        {phonePeCheckout && phonePeSdkError && (
+          <div className="space-y-2 rounded-xl border border-amber-700 bg-stone-800 p-4 text-xs text-stone-200" role="status">
+            <p>{phonePeSdkError}</p>
+            <a
+              href={phonePeCheckout.redirectUrl}
+              className="inline-flex items-center gap-2 font-semibold text-amber-300 underline underline-offset-2"
+            >
+              Continue to PhonePe checkout
+            </a>
+          </div>
+        )}
+
+        {phonePeCheckout && !phonePeSdkReady && !phonePeSdkError && (
+          <p className="text-center text-xs text-stone-300" role="status">Loading secure PhonePe checkout...</p>
+        )}
+
         <div className="pt-2">
           <button
             type="button"
-            disabled={submitting}
+            disabled={submitting || (Boolean(phonePeCheckout) && !phonePeSdkError)}
             onClick={onSubmitOrder}
             className="w-full bg-amber-500 hover:bg-amber-400 disabled:bg-stone-600 text-stone-950 font-bold py-3.5 px-6 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
           >
             {submitting ? (
               <>
                 <div className="w-4 h-4 border-2 border-stone-950 border-t-transparent rounded-full animate-spin"></div>
-                <span>Submitting Application...</span>
+                <span>Starting PhonePe checkout...</span>
               </>
             ) : (
               <>
                 <FileText className="w-4 h-4" />
-                <span>Submit Rental Agreement Application</span>
+                <span>{phonePeCheckout && !phonePeSdkError ? 'PhonePe checkout is open' : paymentPending ? 'Retry PhonePe Payment' : 'Submit & Pay with PhonePe'}</span>
               </>
             )}
           </button>

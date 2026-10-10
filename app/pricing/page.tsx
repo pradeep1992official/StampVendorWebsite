@@ -76,7 +76,7 @@ export default function PricingPage() {
             <div className="bg-white p-4 rounded-xl border border-stone-200">
               <h4 className="font-bold text-stone-900">Which payment modes are accepted?</h4>
               <p className="text-stone-600 mt-1">
-                We accept UPI (Google Pay, PhonePe, Paytm, BHIM), debit/credit cards, and net banking via Razorpay. All payment credentials and secrets remain strictly server-side.
+                Payments are processed through PhonePe Business checkout. Available payment methods are shown securely during checkout.
               </p>
             </div>
 

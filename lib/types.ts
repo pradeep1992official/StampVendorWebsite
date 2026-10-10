@@ -58,6 +58,12 @@ export interface ProofUploads {
 export interface OrderPayment {
   status: PaymentStatus;
   amount?: number;
+  gateway?: 'PhonePe';
+  phonepeMerchantOrderId?: string;
+  phonepeMerchantOrderIds?: string[];
+  phonepeInitiatedAt?: number;
+  phonepeTransactionId?: string;
+  phonepeRedirectUrl?: string;
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
   paidAt?: string;

@@ -173,7 +173,7 @@ export default function HomePage() {
                   <ShieldCheck className="w-5 h-5" />
                 </div>
               </div>
-              <h3 className="font-bold text-stone-900 text-base">Pay Online via Razorpay</h3>
+              <h3 className="font-bold text-stone-900 text-base">Pay Online via PhonePe</h3>
               <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
                 Review terms and pay securely. Government stamp duty, service fee, and courier charges are shown separately.
               </p>

@@ -81,7 +81,7 @@ export default function RefundPolicyPage() {
             How to Request a Cancellation or Refund
           </h2>
           <p>
-            To cancel an order, contact our desk via WhatsApp or email <span className="font-mono text-amber-800 font-semibold">{VENDOR_CONFIG.email}</span> with your Order ID. Approved refunds are credited to the customer account within 3 to 5 business days via Razorpay.
+              To cancel an order, contact our desk via WhatsApp or email <span className="font-mono text-amber-800 font-semibold">{VENDOR_CONFIG.email}</span> with your Order ID. Approved refunds are credited to the original payment method within 3 to 5 business days.
           </p>
         </section>
       </div>

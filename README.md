@@ -13,7 +13,7 @@ Repository: https://github.com/pradeep1992official/StampVendorWebsite
 - Google sign-in through Firebase Authentication.
 - Firebase Firestore and Storage integration.
 - Administration interface for managing orders.
-- Razorpay order creation and signed payment webhook handling.
+- PhonePe Business checkout with server-side payment verification.
 - English and Tamil translation resources.
 - Contact, FAQ, pricing, and policy pages.
 
@@ -27,7 +27,7 @@ Feature availability depends on configuration. A working preview does not confir
 | UI | React 19, TypeScript |
 | Styling | Tailwind CSS 4 |
 | Authentication and data | Firebase Authentication, Firestore, Storage |
-| Payments | Razorpay HTTP API and webhook |
+| Payments | PhonePe Business Standard Checkout API |
 | Documents | jsPDF, html2canvas |
 | Checks | ESLint and Node.js test runner |
 
@@ -69,15 +69,17 @@ Configure these in `.env.local` for local development and in the hosting environ
 
 | Variable | Purpose |
 | --- | --- |
-| `RAZORPAY_KEY_ID` | Razorpay key ID used to create payment orders |
-| `RAZORPAY_KEY_SECRET` | Server-side Razorpay API secret |
-| `RAZORPAY_WEBHOOK_SECRET` | Secret for validating payment webhook signatures |
+| `PHONEPE_CLIENT_ID` | PhonePe Business API client ID |
+| `PHONEPE_CLIENT_SECRET` | Server-side PhonePe API client secret |
+| `PHONEPE_CLIENT_VERSION` | PhonePe Business client version |
+| `PHONEPE_ENV` | `sandbox` for testing or `production` for live payments |
+| `PHONEPE_WEBHOOK_USERNAME` | Basic-auth username configured for the PhonePe webhook |
+| `PHONEPE_WEBHOOK_PASSWORD` | Basic-auth password configured for the PhonePe webhook |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Optional Firebase service account JSON for server-side token verification and payment updates; production can use Application Default Credentials |
 | `GEMINI_API_KEY` | Gemini API access where Gemini features are used |
 | `APP_URL` | Application URL for integrations that need an absolute URL |
 
-The GitHub `.env.example` inspected during README preparation lists only `GEMINI_API_KEY` and `APP_URL`. Add the Razorpay variable names to that template if they are not yet present, without adding real credentials.
-
-Missing Razorpay API credentials cause the payment creation endpoint to return an unavailable response. The webhook also requires its own secret.
+Configure the PhonePe webhook in the PhonePe Business dashboard to call `https://<your-domain>/api/payment/phonepe/webhook` and use the same webhook username and password configured above. Checkout uses the server-calculated saved order total; credentials are never exposed to the browser. Missing PhonePe or Firebase Admin credentials prevent online checkout and payment confirmation.
 
 Never commit real secrets or add secret keys to browser-visible variables. `.env.local` is excluded by the repository's existing `.gitignore`.
 
@@ -110,8 +112,7 @@ Replace remaining vendor placeholders with verified business information. Keep a
 
 ```text
 app/                          Pages, layouts, and API routes
-  api/payment/create-order/   Razorpay order endpoint
-  api/payment/webhook/        Signed payment webhook endpoint
+  api/payment/phonepe/        PhonePe checkout, status, and webhook endpoints
   admin/                      Administration interface
   order/                      Customer order intake
   my-orders/                  Customer order history
@@ -136,7 +137,7 @@ npm test
 npm run build
 ```
 
-The test command covers validation, fee calculation, security rule validation, and agreement document tests. These checks do not replace testing real Firebase and Razorpay integrations.
+The test command covers validation, fee calculation, security rule validation, and agreement document tests. These checks do not replace testing real Firebase and PhonePe integrations.
 
 To run a production build locally:
 
@@ -188,7 +189,7 @@ Ask AI tools to preserve the existing Next.js architecture, routes, authenticati
 | ZIP import does not behave correctly | Check for an extra `StampVendorWebsite-main` folder and stale files from the previous copy |
 | Google sign-in fails | Check the sign-in provider and authorized domains in the intended Firebase project |
 | Firestore or uploads fail | Check database ID, bucket configuration, authentication, and deployed access rules |
-| Payments are unavailable | Configure the Razorpay API credentials and webhook secret, then test with Razorpay test credentials |
+| Payments are unavailable | Configure PhonePe Business API credentials, Firebase Admin credentials, and webhook credentials; test with PhonePe sandbox credentials |
 | Edits do not appear during development | Check whether `DISABLE_HMR=true` is disabling file watching; restart the development server after edits |
 
 ## Release checks
@@ -197,7 +198,7 @@ Ask AI tools to preserve the existing Next.js architecture, routes, authenticati
 - Verify vendor information and remaining placeholders.
 - Confirm the intended Firebase project and access rules.
 - Exercise sign-in, order submission, uploads, tracking, and agreement generation.
-- Verify payment creation and webhook processing in a test environment.
+- Verify PhonePe checkout, return status, and webhook processing in sandbox before enabling production credentials.
 - Configure server secrets in the target hosting environment.
 
 ## Documentation status
