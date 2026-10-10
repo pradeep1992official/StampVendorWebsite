@@ -1,12 +1,10 @@
 {
-  "projectId": "animated-graph-wn2tx",
-  "appId": "1:763439224790:web:13088f17ceb51bb3bc7677",
-  "apiKey": "AIzaSyCNbflyeHPs_XEBUIbC85a3NmuhSKSAWhs",
-  "authDomain": "animated-graph-wn2tx.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-instructionsumma-0eee6c96-579a-4103-94d0-cb7944311b6a",
-  "storageBucket": "animated-graph-wn2tx.firebasestorage.app",
-  "messagingSenderId": "763439224790",
-  "measurementId": "",
-  "oAuthClientId": "763439224790-1gncoujdv3j7262ogikaub0l7il3mnv3.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "apiKey": "AIzaSyBZuN8_UIkhCIwIl_xwv5viFazVKlznrPc",
+  "authDomain": "stampvendor10102026.firebaseapp.com",
+  "projectId": "stampvendor10102026",
+  "storageBucket": "stampvendor10102026.firebasestorage.app",
+  "messagingSenderId": "120645835693",
+  "appId": "1:120645835693:web:1849ac40a7a4312605df24",
+  "measurementId": "G-NBJ9RW8HRT",
+  "firestoreDatabaseId": "(default)"
 }
