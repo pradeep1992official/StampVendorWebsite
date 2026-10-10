@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { RefreshCw, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { DisclaimerBanner } from '@/components/DisclaimerBanner';
-import { VENDOR_CONFIG } from '@/src/config/vendor';
+import { SupportEmailLink } from '@/components/SupportEmailLink';
 
 export const metadata: Metadata = {
   title: 'Refund and Cancellation Policy | Certified Stamp Paper Services',
@@ -81,7 +81,8 @@ export default function RefundPolicyPage() {
             How to Request a Cancellation or Refund
           </h2>
           <p>
-              To cancel an order, contact our desk via WhatsApp or email <span className="font-mono text-amber-800 font-semibold">{VENDOR_CONFIG.email}</span> with your Order ID. Approved refunds are credited to the original payment method within 3 to 5 business days.
+              To cancel an order, contact our desk via WhatsApp or email{' '}
+              <SupportEmailLink className="font-mono text-amber-800 font-semibold" /> with your Order ID. Approved refunds are credited to the original payment method within 3 to 5 business days.
           </p>
         </section>
       </div>

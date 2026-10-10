@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase-admin';
+import { confirmPaidOrderAndGrantReferral, releaseReferralReservation } from '@/lib/referral-admin';
 function isAuthorizedWebhook(req: NextRequest) {
   const username = process.env.PHONEPE_WEBHOOK_USERNAME;
   const password = process.env.PHONEPE_WEBHOOK_PASSWORD;
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
     const completedPayment = Array.isArray(payload.paymentDetails)
       ? payload.paymentDetails.find((payment: { state?: string }) => payment.state === 'COMPLETED')
       : undefined;
+    let shouldReleaseReservation = false;
     await db.runTransaction(async (transaction) => {
       const currentSnap = await transaction.get(orderDoc.ref);
       const currentOrder = currentSnap.data();
@@ -60,6 +62,7 @@ export async function POST(req: NextRequest) {
       const now = new Date().toISOString();
       if (isFailed) {
         if (currentOrder?.payment?.phonepeMerchantOrderId === merchantOrderId) {
+          shouldReleaseReservation = true;
           transaction.update(orderDoc.ref, {
             'payment.status': 'Failed',
             updatedAt: now,
@@ -68,14 +71,16 @@ export async function POST(req: NextRequest) {
         return;
       }
 
-      transaction.update(orderDoc.ref, {
-        'payment.status': 'Paid',
-        'payment.phonepeTransactionId': completedPayment?.transactionId ?? merchantOrderId,
-        'payment.paidAt': now,
-        status: 'Under verification',
-        updatedAt: now,
-      });
     });
+
+    if (isCompleted) {
+      await confirmPaidOrderAndGrantReferral(orderDoc.id, {
+        transactionId: completedPayment?.transactionId ?? merchantOrderId,
+        merchantOrderId,
+      });
+    } else if (shouldReleaseReservation) {
+      await releaseReferralReservation(orderDoc.id);
+    }
 
     return NextResponse.json({ status: 'success' });
   } catch (error) {

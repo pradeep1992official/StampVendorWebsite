@@ -8,17 +8,17 @@ import { DisclaimerBanner } from '@/components/DisclaimerBanner';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
 
 export const metadata: Metadata = {
-  title: 'TN Stamp Paper | Certified Rental Agreement & Non-Judicial Stamping in Tamil Nadu',
-  description: 'Authorized stamp paper vendor service in Tamil Nadu. Order 11-month non-judicial stamp paper rent agreements online with doorstep courier delivery across Tamil Nadu.',
+  title: 'StampSure | Rental Agreements on Tamil Nadu Stamp Paper',
+  description: 'Create your rental agreement online on Tamil Nadu non-judicial stamp paper, with clear fees and doorstep courier delivery.',
   openGraph: {
-    title: 'TN Stamp Paper | Certified Rental Agreement & Non-Judicial Stamping in Tamil Nadu',
-    description: 'Authorized stamp paper vendor service in Tamil Nadu. Order 11-month non-judicial stamp paper rent agreements online with doorstep courier delivery across Tamil Nadu.',
+    title: 'StampSure | Rental Agreements on Tamil Nadu Stamp Paper',
+    description: 'Create your rental agreement online on Tamil Nadu non-judicial stamp paper, with clear fees and doorstep courier delivery.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'TN Stamp Paper | Certified Rental Agreement & Non-Judicial Stamping in Tamil Nadu',
-    description: 'Authorized stamp paper vendor service in Tamil Nadu. Order 11-month non-judicial stamp paper rent agreements online with doorstep courier delivery across Tamil Nadu.',
+    title: 'StampSure | Rental Agreements on Tamil Nadu Stamp Paper',
+    description: 'Create your rental agreement online on Tamil Nadu non-judicial stamp paper, with clear fees and doorstep courier delivery.',
   },
 };
 

@@ -32,6 +32,11 @@ import {
 import { saveDraft, getDraft, deleteDraft, createOrder } from '@/lib/order-service';
 import { extractPincode } from '@/lib/pincode-utils';
 
+function getReferralCodeFromUrl() {
+  if (typeof window === 'undefined') return '';
+  return new URLSearchParams(window.location.search).get('ref')?.toUpperCase().replace(/[\s-]/g, '').slice(0, 12) || '';
+}
+
 export function OrderIntakeWizard() {
   const { user, loading: authLoading, signInWithGoogle, authError } = useAuth();
   const [signingIn, setSigningIn] = useState<boolean>(false);
@@ -89,6 +94,7 @@ export function OrderIntakeWizard() {
   });
 
   const [proofData, setProofData] = useState<Partial<ProofUploads>>({});
+  const [referralCode, setReferralCode] = useState('');
 
   // Submission & Confirmed Order State
   const [submittingOrder, setSubmittingOrder] = useState<boolean>(false);
@@ -100,6 +106,11 @@ export function OrderIntakeWizard() {
     merchantOrderId: string;
     initiatedAt: number;
   } | null>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setReferralCode(getReferralCodeFromUrl()), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   // Validation Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -183,6 +194,7 @@ export function OrderIntakeWizard() {
       rentIncreasePct: 5,
     });
     setProofData({});
+    setReferralCode(getReferralCodeFromUrl());
     setCurrentStep(1);
     setMaxAccessibleStep(1);
     setErrors({});
@@ -514,7 +526,7 @@ export function OrderIntakeWizard() {
   };
 
   // Final Order Submission
-  const handleSubmitOrder = async () => {
+  const handleSubmitOrder = async (submittedReferralCode: string, creditAmount: number) => {
     if (!user) return;
     setSubmissionError(null);
 
@@ -538,6 +550,23 @@ export function OrderIntakeWizard() {
 
     setSubmittingOrder(true);
     try {
+      const normalizedReferralCode = submittedReferralCode.trim().toUpperCase();
+      if (normalizedReferralCode) {
+        const idToken = await user.getIdToken();
+        const validationResponse = await fetch('/api/referrals/validate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ code: normalizedReferralCode }),
+        });
+        const validationResult = await validationResponse.json();
+        if (!validationResponse.ok || !validationResult.valid) {
+          throw new Error(validationResult.error || 'That referral code is not valid for this order.');
+        }
+      }
+
       let orderId = pendingPaymentOrderId;
       if (!orderId) {
         orderId = `TNR_${Date.now().toString().slice(-6)}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
@@ -552,6 +581,7 @@ export function OrderIntakeWizard() {
           propertyDetails: propertyData as PropertyDetails,
           agreementTerms: termsData as AgreementTerms,
           proofUploads: proofData as ProofUploads,
+          ...(normalizedReferralCode ? { referralCode: normalizedReferralCode } : {}),
         });
         setPendingPaymentOrderId(orderId);
       }
@@ -563,11 +593,15 @@ export function OrderIntakeWizard() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ orderId }),
+        body: JSON.stringify({ orderId, creditAmount }),
       });
       const paymentResult = await paymentResponse.json();
+      if (paymentResult.paid) {
+        setConfirmedOrder(paymentResult.order as Order);
+        return;
+      }
       if (!paymentResponse.ok || !paymentResult.available || !paymentResult.redirectUrl) {
-        throw new Error(paymentResult.error || 'Unable to start PhonePe payment. Your order is saved and you can retry.');
+        throw new Error(paymentResult.error || 'Unable to start online payment. Your order is saved and you can retry.');
       }
 
       setPhonePeCheckout({
@@ -587,7 +621,7 @@ export function OrderIntakeWizard() {
 
   const handlePhonePeCheckoutCancelled = useCallback(() => {
     setPhonePeCheckout(null);
-    setSubmissionError('PhonePe checkout was cancelled. You can retry payment when ready.');
+    setSubmissionError('Checkout was cancelled. You can retry payment when ready.');
   }, []);
 
   // If order was confirmed, show the receipt confirmation screen
@@ -855,6 +889,8 @@ export function OrderIntakeWizard() {
             propertyData={propertyData}
             termsData={termsData}
             proofData={proofData}
+            referralCode={referralCode}
+            onReferralCodeChange={setReferralCode}
             onEditStep={(s) => {
               setCurrentStep(s);
               window.scrollTo({ top: 0, behavior: 'smooth' });

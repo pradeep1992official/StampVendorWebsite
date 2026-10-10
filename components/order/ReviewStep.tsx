@@ -18,6 +18,7 @@ import {
 import { PersonDetails, PropertyDetails, AgreementTerms, ProofUploads } from '@/lib/types';
 import { VENDOR_CONFIG } from '@/src/config/vendor';
 import { RentalAgreementDocument } from '@/components/agreement/RentalAgreementDocument';
+import { useAuth } from '@/lib/auth-context';
 
 interface ReviewStepProps {
   ownerData: Partial<PersonDetails>;
@@ -25,8 +26,10 @@ interface ReviewStepProps {
   propertyData: Partial<PropertyDetails>;
   termsData: Partial<AgreementTerms>;
   proofData?: Partial<ProofUploads>;
+  referralCode: string;
+  onReferralCodeChange: (code: string) => void;
   onEditStep: (stepNumber: number) => void;
-  onSubmitOrder: () => Promise<void>;
+  onSubmitOrder: (referralCode: string, creditAmount: number) => Promise<void>;
   submitting: boolean;
   submissionError: string | null;
   paymentPending: boolean;
@@ -75,6 +78,8 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
   propertyData,
   termsData,
   proofData,
+  referralCode,
+  onReferralCodeChange,
   onEditStep,
   onSubmitOrder,
   submitting,
@@ -84,7 +89,11 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
   paymentOrderId,
   onCheckoutCancelled,
 }) => {
+  const { user } = useAuth();
   const [showAgreementPreview, setShowAgreementPreview] = useState<boolean>(false);
+  const [referralBalance, setReferralBalance] = useState(0);
+  const [referralBalanceLoading, setReferralBalanceLoading] = useState(false);
+  const [creditAmount, setCreditAmount] = useState('0');
   const [phonePeSdkReady, setPhonePeSdkReady] = useState(false);
   const [phonePeSdkError, setPhonePeSdkError] = useState<string | null>(null);
   const checkoutAttemptRef = useRef<string | null>(null);
@@ -100,6 +109,33 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
     statusMessage: '',
     paymentAllowed: false,
   });
+
+  useEffect(() => {
+    if (!user) return;
+    let isMounted = true;
+
+    async function loadReferralBalance() {
+      try {
+        setReferralBalanceLoading(true);
+        const idToken = await user!.getIdToken();
+        const response = await fetch('/api/referrals/me', {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not load referral credit.');
+        if (isMounted) setReferralBalance(Number(data.balance || 0));
+      } catch (error) {
+        console.error('Could not load referral credit for checkout:', error);
+      } finally {
+        if (isMounted) setReferralBalanceLoading(false);
+      }
+    }
+
+    void loadReferralBalance();
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   useEffect(() => {
     let isMounted = true;
@@ -170,7 +206,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
     checkoutAttemptRef.current = phonePeCheckout.merchantOrderId;
     const launchTimer = window.setTimeout(() => {
       if (!checkout?.transact) {
-        setPhonePeSdkError('PhonePe checkout could not load. Use the secure redirect link below.');
+        setPhonePeSdkError('Secure checkout could not load. Use the payment link below.');
         return;
       }
 
@@ -196,12 +232,22 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
       } catch (error) {
         checkoutAttemptRef.current = null;
         console.error('PhonePe iframe checkout failed to open:', error);
-        setPhonePeSdkError('PhonePe checkout could not open. Use the secure redirect link below.');
+        setPhonePeSdkError('Secure checkout could not open. Use the payment link below.');
       }
     }, 0);
 
     return () => window.clearTimeout(launchTimer);
   }, [phonePeSdkReady, phonePeCheckout, paymentOrderId, onCheckoutCancelled]);
+
+  useEffect(() => {
+    if (!phonePeCheckout || phonePeSdkReady || phonePeSdkError) return;
+
+    const timeout = window.setTimeout(() => {
+      setPhonePeSdkError('Secure checkout is taking longer than expected. Use the payment link below.');
+    }, 12_000);
+
+    return () => window.clearTimeout(timeout);
+  }, [phonePeCheckout, phonePeSdkReady, phonePeSdkError]);
 
   if (showAgreementPreview) {
     return (
@@ -240,12 +286,12 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
           if (window.PhonePeCheckout?.transact) {
             setPhonePeSdkReady(true);
           } else {
-            setPhonePeSdkError('PhonePe checkout could not load. Use the secure redirect link below.');
+            setPhonePeSdkError('Secure checkout could not load. Use the payment link below.');
           }
         }}
         onError={() => {
           setPhonePeSdkReady(false);
-          setPhonePeSdkError('PhonePe checkout could not load. Use the secure redirect link below.');
+          setPhonePeSdkError('Secure checkout could not load. Use the payment link below.');
         }}
       />
       <div className="border-b border-stone-200 pb-4">
@@ -298,6 +344,43 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
           </div>
         </div>
       )}
+
+      <div className="grid grid-cols-1 gap-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 sm:grid-cols-2">
+        <label className="block text-xs font-bold text-stone-800">
+          Referral code <span className="font-normal text-stone-500">(optional)</span>
+          <input
+            type="text"
+            maxLength={12}
+            value={referralCode}
+            onChange={(event) => onReferralCodeChange(event.target.value.toUpperCase().replace(/[\s-]/g, ''))}
+            disabled={paymentPending || Boolean(phonePeCheckout)}
+            placeholder="Enter a friend’s code"
+            className="mt-1.5 w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm uppercase text-stone-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 disabled:bg-stone-100"
+          />
+          <span className="mt-1 block font-normal text-stone-500">
+            Referral codes can be used on your first paid order.
+          </span>
+        </label>
+
+        <label className="block text-xs font-bold text-stone-800">
+          Apply referral credit
+          <input
+            type="number"
+            min="0"
+            max={Math.min(referralBalance, feeState.totalPayable ?? 0)}
+            step="1"
+            value={creditAmount}
+            onChange={(event) => setCreditAmount(event.target.value)}
+            disabled={paymentPending || referralBalanceLoading || referralBalance === 0 || Boolean(phonePeCheckout)}
+            className="mt-1.5 w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-stone-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 disabled:bg-stone-100"
+          />
+          <span className="mt-1 block font-normal text-stone-600">
+            {referralBalanceLoading
+              ? 'Loading your balance…'
+              : `Available: ₹${referralBalance.toLocaleString('en-IN')}. Choose any whole-rupee amount up to the order total.`}
+          </span>
+        </label>
+      </div>
 
       {/* Accordion / Summary Cards */}
       <div className="space-y-4">
@@ -458,6 +541,20 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
               <span>Total Payable Amount:</span>
               <span className="font-mono text-base">₹{feeState.totalPayable?.toLocaleString('en-IN')}</span>
             </div>
+            {Number(creditAmount) > 0 && (
+              <>
+                <div className="flex justify-between text-emerald-300">
+                  <span>Referral credit applied:</span>
+                  <span className="font-mono">−₹{Number(creditAmount).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between border-t border-stone-800 pt-2 text-sm font-bold text-white">
+                  <span>Amount due:</span>
+                  <span className="font-mono">
+                    ₹{Math.max(0, (feeState.totalPayable ?? 0) - Number(creditAmount)).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="bg-stone-800/90 rounded-xl p-4 border border-stone-700 space-y-2 text-xs">
@@ -478,31 +575,31 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
               href={phonePeCheckout.redirectUrl}
               className="inline-flex items-center gap-2 font-semibold text-amber-300 underline underline-offset-2"
             >
-              Continue to PhonePe checkout
+              Continue to secure checkout
             </a>
           </div>
         )}
 
         {phonePeCheckout && !phonePeSdkReady && !phonePeSdkError && (
-          <p className="text-center text-xs text-stone-300" role="status">Loading secure PhonePe checkout...</p>
+          <p className="text-center text-xs text-stone-300" role="status">Loading secure checkout...</p>
         )}
 
         <div className="pt-2">
           <button
             type="button"
             disabled={submitting || (Boolean(phonePeCheckout) && !phonePeSdkError)}
-            onClick={onSubmitOrder}
+            onClick={() => void onSubmitOrder(referralCode, Number(creditAmount || 0))}
             className="w-full bg-amber-500 hover:bg-amber-400 disabled:bg-stone-600 text-stone-950 font-bold py-3.5 px-6 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
           >
             {submitting ? (
               <>
                 <div className="w-4 h-4 border-2 border-stone-950 border-t-transparent rounded-full animate-spin"></div>
-                <span>Starting PhonePe checkout...</span>
+                <span>Starting secure checkout...</span>
               </>
             ) : (
               <>
                 <FileText className="w-4 h-4" />
-                <span>{phonePeCheckout && !phonePeSdkError ? 'PhonePe checkout is open' : paymentPending ? 'Retry PhonePe Payment' : 'Submit & Pay with PhonePe'}</span>
+                <span>{phonePeCheckout && !phonePeSdkError ? 'Secure checkout is open' : paymentPending ? 'Retry Payment' : 'Submit & Pay'}</span>
               </>
             )}
           </button>

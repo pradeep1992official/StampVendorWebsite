@@ -14,10 +14,10 @@ import { PriceBreakdownCard } from '@/components/PriceBreakdownCard';
 import { VENDOR_CONFIG } from '@/src/config/vendor';
 
 export const metadata: Metadata = {
-  title: 'Rental Agreement Drafting & Stamp Paper in Tamil Nadu',
+  title: 'StampSure | Rental Agreements on Tamil Nadu Stamp Paper',
   description: 'Online rental agreement drafting on non-judicial stamp paper in Tamil Nadu. Clear fees: stamp duty, service fee, and courier charges shown separately.',
   openGraph: {
-    title: 'Rental Agreement Drafting & Stamp Paper in Tamil Nadu',
+    title: 'StampSure | Rental Agreements on Tamil Nadu Stamp Paper',
     description: 'Online rental agreement drafting on non-judicial stamp paper in Tamil Nadu. Clear fees: stamp duty, service fee, and courier charges shown separately.',
   },
 };
@@ -32,11 +32,11 @@ export default function HomePage() {
             {/* Left Column: Heading and Value Props */}
             <div className="lg:col-span-7 space-y-6">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
-                Rental Agreements on Tamil Nadu Stamp Paper, Delivered to Your Doorstep
+                StampSure: Rental Agreements on Tamil Nadu Stamp Paper
               </h1>
 
               <p className="text-stone-300 text-base sm:text-lg leading-relaxed max-w-2xl font-normal">
-                Submit your tenancy details online and get your agreement drafted on authentic Tamil Nadu stamp paper, delivered directly to your doorstep.
+                Submit your tenancy details online and get your agreement drafted on Tamil Nadu stamp paper, delivered directly to your doorstep.
               </p>
 
               {/* Core Features */}
@@ -47,7 +47,7 @@ export default function HomePage() {
                 </div>
                 <div className="flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-medium">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Professional Courier Dispatch</span>
+                  <span>Courier Dispatch</span>
                 </div>
                 <div className="flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-medium">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -90,7 +90,7 @@ export default function HomePage() {
             What We Do For Landlords & Tenants in Tamil Nadu
           </h2>
           <p className="text-stone-600 text-sm sm:text-base leading-relaxed">
-            Convenient, transparent agreement drafting on authentic non-judicial stamp paper without waiting at counter queues.
+            Convenient, transparent agreement drafting on non-judicial stamp paper without waiting at counter queues.
           </p>
         </div>
 
@@ -101,7 +101,7 @@ export default function HomePage() {
             </div>
             <h3 className="font-bold text-stone-900 text-base">Non-Judicial Stamp Paper</h3>
             <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
-              Printed on authentic non-judicial stamp paper in accordance with Tamil Nadu tenancy standards.
+              Printed on non-judicial stamp paper in accordance with Tamil Nadu tenancy standards.
             </p>
           </div>
 
@@ -119,9 +119,9 @@ export default function HomePage() {
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center font-bold text-base">
               03
             </div>
-            <h3 className="font-bold text-stone-900 text-base">Identity Privacy</h3>
+            <h3 className="font-bold text-stone-900 text-base">Privacy</h3>
             <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
-              Aadhaar numbers are optional. Your identification and property details are kept strictly private to your order.
+              Aadhaar is optional. Only the details needed for your order are used.
             </p>
           </div>
 
@@ -129,9 +129,9 @@ export default function HomePage() {
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center font-bold text-base">
               04
             </div>
-            <h3 className="font-bold text-stone-900 text-base">Professional Courier</h3>
+            <h3 className="font-bold text-stone-900 text-base">Courier Dispatch</h3>
             <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
-              1 physical original agreement dispatched directly to your doorstep strictly via Professional Courier with tracking ID.
+              1 physical original agreement dispatched to your delivery address with courier tracking details.
             </p>
           </div>
         </div>
@@ -142,13 +142,13 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-3xl mx-auto space-y-3 mb-14">
             <span className="text-xs uppercase tracking-wider font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
-              4-Step Workflow
+              Simple Process
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-stone-900 tracking-tight">
               How It Works
             </h2>
             <p className="text-stone-600 text-sm sm:text-base">
-              From form submission to doorstep courier delivery.
+              From form submission to courier delivery.
             </p>
           </div>
 
@@ -173,9 +173,9 @@ export default function HomePage() {
                   <ShieldCheck className="w-5 h-5" />
                 </div>
               </div>
-              <h3 className="font-bold text-stone-900 text-base">Pay Online via PhonePe</h3>
+              <h3 className="font-bold text-stone-900 text-base">Review and Pay Online</h3>
               <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
-                Review terms and pay securely. Government stamp duty, service fee, and courier charges are shown separately.
+                Check the agreement details and pay online. Stamp duty, service fee, and courier charges are shown separately.
               </p>
             </div>
 
@@ -186,9 +186,9 @@ export default function HomePage() {
                   <Clock className="w-5 h-5" />
                 </div>
               </div>
-              <h3 className="font-bold text-stone-900 text-base">Verification & Stamping</h3>
+              <h3 className="font-bold text-stone-900 text-base">Drafting & Stamping</h3>
               <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
-                The certified vendor verifies details, drafts the text, and prints the agreement onto non-judicial stamp paper.
+                The details are reviewed, the agreement is drafted, and it is printed on non-judicial stamp paper.
               </p>
             </div>
 
@@ -211,7 +211,7 @@ export default function HomePage() {
               href="/how-it-works"
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-stone-800 hover:text-amber-700 transition-colors"
             >
-              <span>Explore detailed step-by-step workflow</span>
+              <span>View full process</span>
               <ChevronRight className="w-4 h-4" />
             </Link>
           </div>

@@ -14,6 +14,7 @@ Repository: https://github.com/pradeep1992official/StampVendorWebsite
 - Firebase Firestore and Storage integration.
 - Administration interface for managing orders.
 - PhonePe Business checkout with server-side payment verification.
+- Referral codes, first-paid-order rewards, and checkout credit redemption.
 - English and Tamil translation resources.
 - Contact, FAQ, pricing, and policy pages.
 
@@ -77,7 +78,7 @@ Configure these in `.env.local` for local development and in the hosting environ
 | `PHONEPE_WEBHOOK_PASSWORD` | Basic-auth password configured for the PhonePe webhook |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Optional Firebase service account JSON for server-side token verification and payment updates; production can use Application Default Credentials |
 | `GEMINI_API_KEY` | Gemini API access where Gemini features are used |
-| `APP_URL` | Application URL for integrations that need an absolute URL |
+| `APP_URL` | Public application URL used for absolute integration redirects, including the PhonePe payment return URL (for example, `https://your-domain.example`) |
 
 Configure the PhonePe webhook in the PhonePe Business dashboard to call `https://<your-domain>/api/payment/phonepe/webhook` and use the same webhook username and password configured above. Checkout uses the server-calculated saved order total; credentials are never exposed to the browser. Missing PhonePe or Firebase Admin credentials prevent online checkout and payment confirmation.
 
@@ -108,13 +109,23 @@ AI Studio migration may provision or select an applet database. Verify its ident
 
 Replace remaining vendor placeholders with verified business information. Keep administrator settings consistent with access rules; a client-side email check alone does not enforce database permissions.
 
+The public support email can be updated by an authorized administrator in the Admin Console under **Support Settings**. It is stored in Firestore at `settings/support` and used for the Contact page, footer, privacy policy, and refund policy. Contact form submissions are saved as enquiries in Firestore; configuring this address does not enable automatic enquiry email notifications.
+
+Courier partners can be managed by an authorized administrator in the Admin Console under **Courier Partners**. The initial option is Professional Courier; additions are stored in Firestore at `settings/couriers` and become available in the dispatch form after saving.
+
+Customers can visit **Referral Credits** to get a unique share link and view referrals and their credit ledger. A referring customer earns the administrator-configured reward after a new customer’s first rental-agreement order is paid. The reward is credited once, does not expire, and can be applied to the full total of a future order. Customers choose the amount to use at checkout; credit is not cash-redeemable. Administrators manage the reward amount under **Referral Credits** in the Admin Console.
+
+Referral account data, credit reservations, and the reward ledger are server-managed. Referral API routes require Firebase ID-token verification; do not grant client Firestore access to referral account or ledger collections. Deploy the updated Firestore rules along with the application.
+
 ## Project structure
 
 ```text
 app/                          Pages, layouts, and API routes
   api/payment/phonepe/        PhonePe checkout, status, and webhook endpoints
+  api/referrals/             Referral validation and customer credit endpoints
   admin/                      Administration interface
   order/                      Customer order intake
+  referrals/                  Customer referral dashboard
   my-orders/                  Customer order history
   track/                      Order tracking
   rent-agreement/             Rental agreement page

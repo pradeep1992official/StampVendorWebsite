@@ -9,10 +9,10 @@ import { VENDOR_CONFIG } from '@/src/config/vendor';
 
 export const metadata: Metadata = {
   title: 'Pricing & Fee Breakdown | Stamp Duty, Drafting & Courier Charges',
-  description: 'Itemized pricing breakdown for rental agreements: government stamp duty (calculated per agreement), vendor drafting fee, and courier charges shown separately.',
+  description: 'View current rental agreement package pricing based on stamp-paper denomination, delivery region, and optional notary service.',
   openGraph: {
     title: 'Pricing & Fee Breakdown | Stamp Duty, Drafting & Courier Charges',
-    description: 'Itemized pricing breakdown for rental agreements: government stamp duty (calculated per agreement), vendor drafting fee, and courier charges shown separately.',
+    description: 'View current rental agreement package pricing based on stamp-paper denomination, delivery region, and optional notary service.',
   },
 };
 
@@ -51,7 +51,7 @@ export default function PricingPage() {
               <span>Government Stamp Duty Notice</span>
             </div>
             <p className="leading-relaxed text-amber-800">
-              Stamp duty is <strong>calculated per agreement</strong> based on tenancy duration and rent parameters in accordance with the Tamil Nadu Stamp Act. Government stamp duty goes directly towards the physical non-judicial stamp paper purchased from the Registration Department.
+              Your package price depends on the selected stamp-paper denomination and delivery region. Any optional notary fee is shown separately. Review the current itemized total before payment.
             </p>
           </div>
         </div>
@@ -69,21 +69,21 @@ export default function PricingPage() {
             <div className="bg-white p-4 rounded-xl border border-stone-200">
               <h4 className="font-bold text-stone-900">How is the stamp duty calculated?</h4>
               <p className="text-stone-600 mt-1">
-                The stamp duty is calculated per agreement based on the tenancy period and monthly rental amount as mandated under the Tamil Nadu Stamp Act.
+                The package price is based on the selected ₹100 or ₹200 stamp paper and delivery region. The current total is shown before payment; optional notary service is listed separately.
               </p>
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-stone-200">
               <h4 className="font-bold text-stone-900">Which payment modes are accepted?</h4>
               <p className="text-stone-600 mt-1">
-                Payments are processed through PhonePe Business checkout. Available payment methods are shown securely during checkout.
+                Payments are processed securely online. The payment methods available for your transaction are shown during checkout.
               </p>
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-stone-200">
               <h4 className="font-bold text-stone-900">What is the cancellation and refund policy?</h4>
               <p className="text-stone-600 mt-1">
-                You can cancel for a full refund prior to physical stamp paper procurement and drafting. Once non-judicial stamp paper has been serialized with party details, the government stamp duty component cannot be refunded under government regulations.
+                Cancellation and refund eligibility depends on the order’s processing stage. Read our Refund and Cancellation Policy or contact support with your order ID.
               </p>
             </div>
           </div>

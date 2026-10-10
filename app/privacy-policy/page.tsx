@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { ShieldCheck, Lock, EyeOff, FileText, CheckCircle2 } from 'lucide-react';
 import { DisclaimerBanner } from '@/components/DisclaimerBanner';
 import { VENDOR_CONFIG } from '@/src/config/vendor';
+import { SupportEmailLink } from '@/components/SupportEmailLink';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | Data Protection & Aadhaar Masking Policy | TN Stamp Paper',
@@ -94,7 +95,8 @@ export default function PrivacyPolicyPage() {
             <span>4. Data Retention & Erasure</span>
           </h2>
           <p>
-            Customer orders and status history are maintained so you can track your courier dispatch. Once the physical agreement is successfully couriered and delivered, customers may request proof document purge from our systems by contacting our vendor desk at <span className="font-mono text-amber-800 font-semibold">{VENDOR_CONFIG.email}</span>.
+            Customer orders and status history are maintained so you can track your courier dispatch. Once the physical agreement is successfully couriered and delivered, customers may request proof document purge from our systems by contacting our vendor desk at{' '}
+            <SupportEmailLink className="font-mono text-amber-800 font-semibold" />.
           </p>
         </section>
       </div>

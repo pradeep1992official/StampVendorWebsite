@@ -11,7 +11,7 @@ import {
   Truck,
   Clock
 } from 'lucide-react';
-import { VENDOR_CONFIG } from '@/src/config/vendor';
+import { SupportEmailLink } from '@/components/SupportEmailLink';
 
 export function ContactClient() {
   const [formData, setFormData] = useState({
@@ -125,9 +125,7 @@ export function ContactClient() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-stone-900">Email Support</h3>
-                    <a href={`mailto:${VENDOR_CONFIG.email}`} className="text-amber-800 hover:underline font-mono block mt-0.5 font-semibold">
-                      {VENDOR_CONFIG.email}
-                    </a>
+                    <SupportEmailLink className="text-amber-800 hover:underline font-mono block mt-0.5 font-semibold" />
                     <p className="text-stone-500 text-xs mt-0.5">We respond to email queries within 24 hours.</p>
                   </div>
                 </div>
@@ -139,7 +137,7 @@ export function ContactClient() {
                   <div>
                     <h3 className="font-semibold text-stone-900">Courier Dispatch</h3>
                     <p className="text-stone-600 mt-0.5">
-                      All physical agreements are dispatched strictly via The Professional Couriers across Tamil Nadu.
+                      Physical agreements are dispatched with tracking details available in your order status.
                     </p>
                   </div>
                 </div>

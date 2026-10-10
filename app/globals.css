@@ -1,6 +1,48 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Noto+Sans+Tamil:wght@400;600;700&display=swap');
 
+@theme {
+  --color-stone-50: #fef3e2;
+  --color-stone-100: #f9e8d2;
+  --color-stone-200: #f0d8bd;
+  --color-stone-300: #dec3a3;
+  --color-stone-400: #b99a78;
+  --color-stone-500: #8d6e52;
+  --color-stone-600: #694c36;
+  --color-stone-700: #4b3425;
+  --color-stone-800: #38251a;
+  --color-stone-900: #2a1a0e;
+  --color-stone-950: #21130a;
+
+  --color-amber-50: #fff8eb;
+  --color-amber-100: #fef3e2;
+  --color-amber-200: #fce3bf;
+  --color-amber-300: #f8cc8a;
+  --color-amber-400: #f4ae52;
+  --color-amber-500: #f4ae52;
+  --color-amber-600: #d4621a;
+  --color-amber-700: #b84d12;
+  --color-amber-800: #913b10;
+  --color-amber-900: #6f2c10;
+  --color-amber-950: #4c1d0c;
+}
+
+.rent-receipt-top-rule {
+  display: flex;
+  gap: 3px;
+  height: 8px;
+  margin: 0 0 12px;
+}
+
+.rent-receipt-top-rule span {
+  flex: 1;
+  background: #16a765;
+}
+
+.rent-receipt-bottom-rule {
+  border-top: 3px dotted #a8a29e;
+}
+
 @media print {
   /* Hide all app shells, navigation bars, footers, and preview action toolbars */
   body {
@@ -12,19 +54,86 @@
     visibility: hidden;
   }
 
+  .agreement-print-modal {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: auto !important;
+    bottom: auto !important;
+    display: block !important;
+    width: 210mm !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    visibility: visible !important;
+  }
+
+  .agreement-print-modal > div {
+    width: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    visibility: visible !important;
+  }
+
   #printable-agreement-doc,
   #printable-agreement-doc * {
     visibility: visible;
   }
 
   #printable-agreement-doc {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100% !important;
+    position: static !important;
+    width: 210mm !important;
     margin: 0 !important;
     padding: 0 !important;
     background: white !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .rent-receipt-print-area,
+  .rent-receipt-print-area * {
+    visibility: visible !important;
+  }
+
+  .rent-receipt-print-area {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    display: block !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  .rent-receipt-page {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 240mm !important;
+    margin: 0 !important;
+    padding: 20mm !important;
+    border: 1px solid #d6d3d1 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    background: white !important;
+    color: #000 !important;
+  }
+
+  .rent-receipt-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
   }
 
   .customer-agreement-preview #printable-agreement-doc {
@@ -39,14 +148,24 @@
     visibility: hidden !important;
   }
 
+  .agreement-document-wrapper {
+    display: block !important;
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
   .agreement-page {
+    box-sizing: border-box !important;
     box-shadow: none !important;
     border: none !important;
     border-radius: 0 !important;
-    margin: 0 auto !important;
+    margin: 0 !important;
     padding: 20mm 15mm !important;
-    width: 100% !important;
+    width: 210mm !important;
     max-width: 210mm !important;
+    height: 297mm !important;
     min-height: 297mm !important;
     page-break-after: always !important;
     break-after: page !important;
@@ -61,9 +180,13 @@
     break-after: auto !important;
   }
 
+  .agreement-field-highlight {
+    background-color: transparent !important;
+    border-color: transparent !important;
+  }
+
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 0;
   }
 }
-

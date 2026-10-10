@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   Sparkles,
   Layers,
-  HelpCircle
 } from 'lucide-react';
 import { PersonDetails, PropertyDetails, AgreementTerms } from '@/lib/types';
 import { amountInWords } from '@/lib/number-to-words';
@@ -92,6 +91,19 @@ export const RentalAgreementDocument: React.FC<RentalAgreementDocumentProps> = (
   const validTo = calculateAgreementEndDate(terms.startDate, terms.tenureMonths || 11);
 
   const noticePeriod = formatNoticePeriodMonths(terms.noticePeriodDays);
+  const showSecondPageStampPaperSpace =
+    stampPaperSpace && terms.stampPaperDenomination === 200;
+
+  const renderStampPaperAllowance = (pageNumber: 1 | 2) => (
+    <div className="stamp-paper-allowance h-64 sm:h-72 border border-dashed border-stone-300 bg-stone-50/50 rounded-xl mb-8 flex flex-col items-center justify-center text-center p-4 print:border-none print:bg-transparent">
+      <span className="no-print text-xs font-sans font-semibold text-stone-400 uppercase tracking-widest">
+        [Space Reserved for Government ₹{terms.stampPaperDenomination || 100} Non-Judicial Stamp Paper / E-Stamp Certificate]
+      </span>
+      <span className="no-print text-[11px] font-sans text-stone-400 mt-1 max-w-sm">
+        Page {pageNumber} text begins below this margin so it prints seamlessly on official ₹{terms.stampPaperDenomination || 100} Non-Judicial Tamil Nadu Stamp Paper.
+      </span>
+    </div>
+  );
 
   const renderBlank = (value: React.ReactNode, isFilled: boolean, emptyWidthClass = 'w-36') => {
     if (!isFilled || !value) {
@@ -103,7 +115,7 @@ export const RentalAgreementDocument: React.FC<RentalAgreementDocumentProps> = (
       <span 
         className={
           highlightFields 
-            ? 'bg-amber-100/90 text-stone-900 font-bold px-1.5 py-0.5 rounded transition-colors border-b-2 border-amber-400' 
+            ? 'agreement-field-highlight bg-amber-100/90 text-stone-900 font-bold px-1.5 py-0.5 rounded transition-colors border-b-2 border-amber-400'
             : 'text-stone-900 font-bold'
         }
       >
@@ -146,9 +158,6 @@ export const RentalAgreementDocument: React.FC<RentalAgreementDocumentProps> = (
               <FileCheck className="w-5 h-5 text-emerald-600" />
               <span>{title}</span>
             </h2>
-            <p className="text-xs text-stone-500">
-              Populated using your tenancy inputs in Tamil Nadu Non-Judicial Stamping format.
-            </p>
           </div>
         </div>
 
@@ -176,36 +185,26 @@ export const RentalAgreementDocument: React.FC<RentalAgreementDocumentProps> = (
                 ? 'bg-emerald-50 text-emerald-900 border-emerald-300' 
                 : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'
             }`}
-            title="Leave top 100mm space on Page 1 for physical stamp paper execution"
+            title="Leave top space on Page 1 and, for ₹200 stamp paper, Page 2 for physical stamp paper execution"
           >
             <Layers className="w-3.5 h-3.5" />
             <span>Stamp Paper Top Margin ({stampPaperSpace ? 'Active' : 'Off'})</span>
           </button>
 
-          {/* Print / Save PDF Button */}
+          {/* Print Action */}
           {!customerPreview && (
             <button
               type="button"
               onClick={handlePrint}
-              className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm cursor-pointer transition active:scale-95"
-              title="Print document or select 'Save as PDF' in the destination dropdown"
+              className="px-4 py-2 border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition active:scale-95"
+              title="Open browser print dialog"
             >
               <Printer className="w-4 h-4" />
-              <span>Print / Save PDF</span>
+              <span>Print</span>
             </button>
           )}
         </div>
       </div>
-
-      {/* Tip for Saving PDF */}
-      {!customerPreview && (
-        <div className="no-print bg-amber-50/70 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center gap-2 text-xs text-amber-900">
-          <HelpCircle className="w-4 h-4 text-amber-700 shrink-0" />
-          <span>
-            <strong>How to Save PDF:</strong> Click <strong>Print / Save PDF</strong> and select <strong>&quot;Save as PDF&quot;</strong> as the Destination in your browser&apos;s print dialog.
-          </span>
-        </div>
-      )}
 
       {/* DOCUMENT CONTAINER */}
       <div id="printable-agreement-doc" className={`agreement-document-wrapper space-y-8 print:space-y-0 ${customerPreview ? 'customer-agreement-document' : ''}`}>
@@ -219,14 +218,7 @@ export const RentalAgreementDocument: React.FC<RentalAgreementDocumentProps> = (
           <div>
             {/* Stamp Paper Allowance (Page 1 Header) */}
             {stampPaperSpace && (
-              <div className="h-64 sm:h-72 border border-dashed border-stone-300 bg-stone-50/50 rounded-xl mb-8 flex flex-col items-center justify-center text-center p-4 print:border-none print:bg-transparent">
-                <span className="no-print text-xs font-sans font-semibold text-stone-400 uppercase tracking-widest">
-                  [Space Reserved for Government ₹{terms.stampPaperDenomination || 100} Non-Judicial Stamp Paper / E-Stamp Certificate]
-                </span>
-                <span className="no-print text-[11px] font-sans text-stone-400 mt-1 max-w-sm">
-                  First page text begins below this margin so it prints seamlessly on official ₹{terms.stampPaperDenomination || 100} Non-Judicial Tamil Nadu Stamp Paper.
-                </span>
-              </div>
+              renderStampPaperAllowance(1)
             )}
 
             {/* Title */}
@@ -281,6 +273,9 @@ export const RentalAgreementDocument: React.FC<RentalAgreementDocumentProps> = (
           style={{ fontFamily: 'Georgia, Cambria, "Times New Roman", Times, serif' }}
         >
           {customerPreview && <SampleDraftWatermark />}
+          {showSecondPageStampPaperSpace && (
+            <div>{renderStampPaperAllowance(2)}</div>
+          )}
           <div className="space-y-6 text-justify">
             {/* Preamble / Recital */}
             <p className="leading-loose">
@@ -430,35 +425,6 @@ export const RentalAgreementDocument: React.FC<RentalAgreementDocumentProps> = (
               </div>
             </div>
 
-            {/* Notary Public Attestation Block (if selected by customer) */}
-            {terms.includeNotary && (
-              <div className="mt-8 border-2 border-stone-800 p-4 rounded-lg bg-stone-50/50 print:bg-transparent text-xs">
-                <div className="flex justify-between items-start gap-4">
-                  <div>
-                    <h4 className="font-bold tracking-wider uppercase text-stone-900 text-[11px]">
-                      Attestation & Seal of Advocate Notary Public
-                    </h4>
-                    <p className="text-[11px] text-stone-600 mt-0.5">
-                      Solemnly affirmed and signed before me by both the OWNER and the TENANT who were identified by the witnesses above.
-                    </p>
-                  </div>
-                  <div className="w-24 h-16 border border-dashed border-stone-500 flex items-center justify-center text-[10px] text-stone-400 font-sans text-center shrink-0">
-                    [NOTARY SEAL]
-                  </div>
-                </div>
-                <div className="mt-4 pt-2 border-t border-stone-300 flex justify-between items-end text-[11px]">
-                  <div>
-                    <span>Notary Reg. No: _______________</span>
-                    <br />
-                    <span>Jurisdiction: Tamil Nadu, India</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="border-b border-stone-500 w-44 mb-1"></div>
-                    <span className="font-bold">ADVOCATE & NOTARY PUBLIC</span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="text-center pt-8 border-t border-stone-100 text-xs text-stone-400 font-sans print:hidden">

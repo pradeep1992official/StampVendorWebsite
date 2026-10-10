@@ -23,6 +23,7 @@ export const en = {
     rentAgreement: 'Rent Agreement',
     howItWorks: 'How It Works',
     pricing: 'Pricing',
+    rentReceipt: 'Rent Receipt',
     faq: 'FAQ',
     about: 'About Vendor',
     contact: 'Contact',

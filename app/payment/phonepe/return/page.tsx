@@ -44,7 +44,7 @@ function PhonePeReturnContent() {
   const paymentStartedAtParam = Number(searchParams.get('paymentStartedAt'));
   const { user, loading } = useAuth();
   const [result, setResult] = useState<PaymentResult>('checking');
-  const [message, setMessage] = useState('Verifying your payment with PhonePe.');
+  const [message, setMessage] = useState('Verifying your payment.');
   const [startingCheckout, setStartingCheckout] = useState(false);
 
   async function checkPayment() {
@@ -57,7 +57,7 @@ function PhonePeReturnContent() {
         setMessage('Payment received. Your order is now under verification.');
       } else {
         setResult('pending');
-        setMessage('PhonePe has not confirmed this payment yet. You can check again shortly.');
+        setMessage('Your payment has not been confirmed yet. You can check again shortly.');
       }
     } catch (error) {
       setResult('error');
@@ -80,12 +80,12 @@ function PhonePeReturnContent() {
       });
       const data = await response.json();
       if (!response.ok || !data.available || !data.redirectUrl) {
-        throw new Error(data.error || 'Unable to restart PhonePe checkout.');
+        throw new Error(data.error || 'Unable to restart secure checkout.');
       }
       window.location.assign(data.redirectUrl);
     } catch (error) {
       setResult('error');
-      setMessage(error instanceof Error ? error.message : 'Unable to restart PhonePe checkout.');
+      setMessage(error instanceof Error ? error.message : 'Unable to restart secure checkout.');
       setStartingCheckout(false);
     }
   }
@@ -112,12 +112,12 @@ function PhonePeReturnContent() {
         }
         if (data.state === 'FAILED') {
           setResult('failed');
-          setMessage('PhonePe reported that this payment failed. You can safely try checkout again.');
+          setMessage('This payment failed. You can safely try checkout again.');
           return;
         }
 
         setResult('pending');
-        setMessage('PhonePe has not confirmed this payment yet. We are checking its status.');
+        setMessage('Your payment has not been confirmed yet. We are checking its status.');
         const elapsed = Date.now() - initiatedAt;
         const nextOffset = getPhonePeReconciliationOffsets(data.expireAt, initiatedAt)
           .find((offset) => offset > elapsed);
@@ -170,7 +170,7 @@ function PhonePeReturnContent() {
             {(displayResult === 'pending' || displayResult === 'failed') && (
               <button type="button" onClick={() => void restartCheckout()} disabled={!user || startingCheckout} className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-500 text-stone-950 rounded-lg text-sm font-semibold disabled:opacity-50">
                 <RefreshCw className="w-4 h-4" />
-                {startingCheckout ? 'Opening PhonePe...' : 'Retry PhonePe payment'}
+                {startingCheckout ? 'Opening secure checkout...' : 'Retry payment'}
               </button>
             )}
             <button type="button" onClick={() => void checkPayment()} disabled={!user || startingCheckout} className="inline-flex items-center gap-2 px-4 py-2.5 bg-stone-900 text-white rounded-lg text-sm font-semibold disabled:opacity-50">

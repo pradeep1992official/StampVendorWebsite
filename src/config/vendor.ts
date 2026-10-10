@@ -61,9 +61,9 @@ export const VENDOR_CONFIG: VendorConfig = {
   phone: '',
   whatsappNumber: '',
   whatsappPrefilledMessage: '',
-  email: 'pradeep1992official@gmail.com',
+  email: 'pradeep1992@official.com',
   workingHours: '',
-  courierPartner: 'The Professional Couriers',
+  courierPartner: 'Courier Partner',
   fees: {
     stampDuty: {
       amount: 100,
@@ -77,8 +77,8 @@ export const VENDOR_CONFIG: VendorConfig = {
     },
     courierFee: {
       amount: 100,
-      displayLabel: 'Professional Courier Delivery',
-      description: 'Original physical stamp paper agreement dispatched via Professional Courier',
+      displayLabel: 'Courier Delivery',
+      description: 'Original physical stamp paper agreement dispatched with tracking',
     },
   },
   placeholdersTodoList: [],

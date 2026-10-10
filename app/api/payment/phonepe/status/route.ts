@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb, verifyFirebaseIdToken } from '@/lib/firebase-admin';
 import { fetchPhonePeOrderStatus, getPhonePeAccessToken, getPhonePeCredentials } from '@/lib/phonepe';
+import { confirmPaidOrderAndGrantReferral, releaseReferralReservation } from '@/lib/referral-admin';
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     const credentials = getPhonePeCredentials();
     const merchantOrderId = order.payment?.phonepeMerchantOrderId;
     if (!credentials || !merchantOrderId) {
-      return NextResponse.json({ error: 'No PhonePe payment attempt was found for this order.' }, { status: 404 });
+      return NextResponse.json({ error: 'No payment attempt was found for this order.' }, { status: 404 });
     }
 
     const accessToken = await getPhonePeAccessToken(credentials);
@@ -35,14 +36,20 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Payment amount did not match the order.' }, { status: 409 });
       }
 
-      await orderRef.update({
-        'payment.status': 'Paid',
-        'payment.phonepeTransactionId': completedPayment?.transactionId ?? merchantOrderId,
-        'payment.paidAt': new Date().toISOString(),
-        status: 'Under verification',
-        updatedAt: new Date().toISOString(),
+      await confirmPaidOrderAndGrantReferral(orderId, {
+        transactionId: completedPayment?.transactionId ?? merchantOrderId,
+        merchantOrderId,
       });
       return NextResponse.json({ paid: true });
+    }
+
+    if (paymentStatus.state === 'FAILED' || paymentStatus.state === 'EXPIRED') {
+      await orderRef.update({
+        'payment.status': 'Failed',
+        updatedAt: new Date().toISOString(),
+      });
+      await releaseReferralReservation(orderId);
+      return NextResponse.json({ paid: false, state: paymentStatus.state });
     }
 
     return NextResponse.json({
@@ -53,6 +60,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('PhonePe status verification error:', error);
-    return NextResponse.json({ error: 'Unable to verify PhonePe payment right now.' }, { status: 500 });
+    return NextResponse.json({ error: 'Unable to verify payment right now.' }, { status: 500 });
   }
 }

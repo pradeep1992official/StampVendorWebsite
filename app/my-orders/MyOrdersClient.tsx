@@ -12,7 +12,9 @@ import {
   LogIn, 
   ShieldAlert,
   Eye,
-  ArrowLeft
+  ArrowLeft,
+  CreditCard,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
@@ -28,6 +30,8 @@ export function MyOrdersClient() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [startingPaymentOrderId, setStartingPaymentOrderId] = useState<string | null>(null);
+  const [paymentRetryError, setPaymentRetryError] = useState<{ orderId: string; message: string } | null>(null);
 
   // Correction handling
   const [activeCorrectionOrderId, setActiveCorrectionOrderId] = useState<string | null>(null);
@@ -95,6 +99,34 @@ export function MyOrdersClient() {
       alert('Could not submit correction. Please try again.');
     } finally {
       setSubmittingCorrection(false);
+    }
+  };
+
+  const handlePaymentRetry = async (orderId: string) => {
+    if (!user) return;
+    setStartingPaymentOrderId(orderId);
+    setPaymentRetryError(null);
+
+    try {
+      const idToken = await user.getIdToken();
+      const response = await fetch('/api/payment/phonepe/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ orderId }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.available || !result.redirectUrl) {
+        throw new Error(result.error || 'Unable to start online payment. Please try again.');
+      }
+
+      window.location.assign(result.redirectUrl);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to start online payment.';
+      setPaymentRetryError({ orderId, message });
+      setStartingPaymentOrderId(null);
     }
   };
 
@@ -323,6 +355,47 @@ export function MyOrdersClient() {
                   <p className="text-stone-500">Deposit: ₹{ord.agreementTerms.securityDeposit?.toLocaleString('en-IN')}</p>
                 </div>
               </div>
+
+              {(ord.payment.totalBeforeCredits !== undefined || (ord.payment.referralCreditApplied ?? 0) > 0) && (
+                <div className="flex flex-wrap gap-x-5 gap-y-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-xs text-emerald-950">
+                  <span>Order total: ₹{(ord.payment.totalBeforeCredits ?? ord.payment.amount ?? 0).toLocaleString('en-IN')}</span>
+                  {(ord.payment.referralCreditApplied ?? 0) > 0 && (
+                    <span>Referral credit: −₹{ord.payment.referralCreditApplied?.toLocaleString('en-IN')}</span>
+                  )}
+                  <strong>Paid: ₹{(ord.payment.amount ?? 0).toLocaleString('en-IN')}</strong>
+                </div>
+              )}
+
+              {(ord.payment?.status === 'Pending' || ord.payment?.status === 'Failed') &&
+                ord.status !== 'Cancelled' && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-2">
+                      <CreditCard className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="block">
+                          {ord.payment.status === 'Failed' ? 'Payment failed' : 'Payment not completed'}
+                        </strong>
+                        <p className="mt-0.5 text-amber-800">
+                          Your order is saved. Resume checkout here whenever you are ready.
+                        </p>
+                        {paymentRetryError?.orderId === ord.orderId && (
+                          <p className="mt-2 text-rose-700" role="alert">{paymentRetryError.message}</p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handlePaymentRetry(ord.orderId)}
+                      disabled={startingPaymentOrderId !== null}
+                      className="inline-flex items-center justify-center gap-2 self-start sm:self-auto bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-stone-950 font-bold px-4 py-2 rounded-xl text-xs transition-colors cursor-pointer"
+                    >
+                      {startingPaymentOrderId === ord.orderId
+                        ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        : <CreditCard className="w-3.5 h-3.5" />}
+                      <span>{startingPaymentOrderId === ord.orderId ? 'Opening secure checkout...' : 'Pay / Retry Payment'}</span>
+                    </button>
+                  </div>
+                )}
 
               {/* Courier tracking strip if dispatched */}
               {ord.courier && (

@@ -5,18 +5,15 @@ import {
   CreditCard, 
   Printer, 
   Truck, 
-  ShieldCheck, 
-  ArrowRight,
-  PackageCheck
+  ArrowRight
 } from 'lucide-react';
-import { PriceBreakdownCard } from '@/components/PriceBreakdownCard';
 
 export const metadata: Metadata = {
-  title: 'How It Works | Step-by-Step Rental Agreement Delivery in Tamil Nadu',
-  description: 'Discover how our 4-step process delivers authentic rental agreements to your doorstep across Tamil Nadu via Professional Courier.',
+  title: 'How It Works | Rental Agreement Process in Tamil Nadu',
+  description: 'Learn the steps to submit rental agreement details, review charges, and receive the document by courier in Tamil Nadu.',
   openGraph: {
-    title: 'How It Works | Step-by-Step Rental Agreement Delivery in Tamil Nadu',
-    description: 'Discover how our 4-step process delivers authentic rental agreements to your doorstep across Tamil Nadu via Professional Courier.',
+    title: 'How It Works | Rental Agreement Process in Tamil Nadu',
+    description: 'Learn the steps to submit rental agreement details, review charges, and receive the document by courier in Tamil Nadu.',
   },
 };
 
@@ -26,45 +23,45 @@ export default function HowItWorksPage() {
       num: '01',
       icon: <FileText className="w-6 h-6 text-amber-700" />,
       title: 'Submit Agreement Details Online',
-      desc: 'Fill our clean, mobile-first form with Owner, Tenant, and Property details. Providing an Aadhaar number is optional.',
+      desc: 'Fill in the owner, tenant, and property details in the form. Aadhaar is optional.',
       details: [
-        'Owner & Tenant full name, father/spouse name, age, phone & email',
-        'Identification details (Aadhaar optional, Voter ID, PAN, or Passport)',
-        'Monthly rent, security deposit, notice period & tenure',
-        'Fast 4-step intake flow with instant draft review',
+        'Owner and tenant name, age, and contact details',
+        'Identification details such as Aadhaar, Voter ID, PAN, or Passport',
+        'Rent amount, security deposit, notice period, and tenancy duration',
+        'Simple form with clear fields and a review step before payment',
       ],
     },
     {
       num: '02',
       icon: <CreditCard className="w-6 h-6 text-sky-700" />,
-      title: 'Review & Pay via Secure Online Gateway',
-      desc: 'Review every detail on an editable summary screen. Pay securely online. Government Stamp Duty, Drafting & Stamping, and Professional Courier charges are transparently itemized with zero hidden charges.',
+      title: 'Review & Pay Online',
+      desc: 'Check the details on the summary page and complete the payment online. The price and optional services are shown before checkout.',
       details: [
-        'Instant digital order receipt & unique Order ID',
-        'Server-side payment verification',
-        'SMS & email confirmation with order status tracking link',
+        'Digital order confirmation with your Order ID',
+        'Secure payment process with confirmation by email or SMS',
+        'Status updates available through the order tracking link',
       ],
     },
     {
       num: '03',
       icon: <Printer className="w-6 h-6 text-purple-700" />,
-      title: 'Non-Judicial Stamp Paper Procured & Drafted',
-      desc: 'Our drafting team formats the agreement according to standard tenancy guidelines. We print the custom rental contract onto authentic non-judicial stamp paper bearing the physical serial number.',
+      title: 'Drafting & Stamp Paper',
+      desc: 'The agreement is prepared using standard tenancy terms and printed on non-judicial stamp paper with the required serial number.',
       details: [
-        'Authentic serial numbered Tamil Nadu non-judicial stamp paper',
-        'Standard clauses formulated for Tamil Nadu tenancy laws',
-        'Quality inspection to ensure all spelling and party names match ID proofs',
+        'Tamil Nadu non-judicial stamp paper with serial number',
+        'Standard tenancy clauses based on local requirements',
+        'Review for names, dates, and property details before dispatch',
       ],
     },
     {
       num: '04',
       icon: <Truck className="w-6 h-6 text-emerald-700" />,
-      title: 'Professional Courier Dispatched to Your Doorstep',
-      desc: 'The stamped agreement is safely packaged inside a secure, tear-resistant envelope and dispatched strictly via Professional Courier with consignment tracking.',
+      title: 'Courier Delivery',
+      desc: 'Once the document is ready, it is packed and sent by courier with tracking information.',
       details: [
-        'Dispatched promptly upon draft verification',
-        'Professional Courier consignment number sent via SMS and order portal',
-        'Simply sign along with tenant and two witnesses upon delivery',
+        'Dispatch after document verification',
+        'Courier tracking details shared with your order',
+        'Sign the agreement with the tenant and two witnesses on delivery',
       ],
     },
   ];
@@ -76,15 +73,15 @@ export default function HowItWorksPage() {
         <div className="bg-stone-900 text-white rounded-3xl p-8 sm:p-12 border border-stone-800 shadow-sm relative overflow-hidden">
           <div className="max-w-3xl space-y-4">
             <span className="text-xs uppercase tracking-wider font-bold text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30">
-              Verified Procedure
+              Simple Process
             </span>
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
-              How Our Rental Agreement Service Works
+              How the Rental Agreement Process Works
             </h1>
 
             <p className="text-stone-300 text-base sm:text-lg leading-relaxed">
-              A transparent, reliable 4-step workflow designed to save your time while providing authentic non-judicial stamp paper agreements across Tamil Nadu.
+              A straightforward 4-step process for submitting details, reviewing the charges, preparing the document, and receiving it by courier in Tamil Nadu.
             </p>
 
             <div className="pt-2">
@@ -114,7 +111,7 @@ export default function HowItWorksPage() {
                 </div>
               </div>
 
-              <div className="lg:col-span-7 space-y-3">
+              <div className="lg:col-span-11 space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 bg-stone-50 rounded-lg border border-stone-200/60">
                     {st.icon}
@@ -133,53 +130,11 @@ export default function HowItWorksPage() {
                   ))}
                 </div>
               </div>
-
-              <div className="lg:col-span-4 bg-stone-50 rounded-xl p-4 border border-stone-200/60 text-xs text-stone-600 space-y-2">
-                <div className="flex items-center gap-1.5 font-bold text-stone-900">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Authentic Quality Check</span>
-                </div>
-                <p>
-                  Every document is drafted on genuine non-judicial stamp paper bearing an authentic serial number.
-                </p>
-              </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Transparent Pricing Callout */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-          <div className="lg:col-span-6 space-y-4">
-            <span className="text-xs uppercase tracking-wider font-bold text-amber-700">Fair Pricing</span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-stone-900">
-              Clear & Transparent Cost Structure
-            </h2>
-            <p className="text-stone-600 text-sm leading-relaxed">
-              No convenience surcharges, no hidden paperwork fees. We disclose the exact breakdown between the government stamp duty, drafting & stamping fee, and Professional Courier dispatch.
-            </p>
-            <div className="space-y-2 pt-2 text-xs text-stone-700 font-medium">
-              <div className="flex items-center gap-2">
-                <PackageCheck className="w-4 h-4 text-emerald-600" />
-                <span>Professional Courier with tracking number</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <PackageCheck className="w-4 h-4 text-emerald-600" />
-                <span>Waterproof, tamper-evident courier packaging</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <PackageCheck className="w-4 h-4 text-emerald-600" />
-                <span>1 physical original copy printed on authentic stamp paper and couriered</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-6">
-            <PriceBreakdownCard showCta={true} />
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

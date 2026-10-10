@@ -24,6 +24,7 @@ export const ta: TranslationDictionary = {
     rentAgreement: 'வாடகை ஒப்பந்தம்',
     howItWorks: 'எப்படி செயல்படுகிறது?',
     pricing: 'கட்டண விபரம்',
+    rentReceipt: 'வாடகை ரசீது',
     faq: 'கேள்வி & பதில்',
     about: 'எங்களை பற்றி',
     contact: 'தொடர்புக்கு',

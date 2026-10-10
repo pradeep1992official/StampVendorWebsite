@@ -50,11 +50,11 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
         </div>
       </div>
 
-      {/* Interactive 3-Dropbox Selector */}
+      {/* Interactive package options */}
       <div className="p-6 bg-amber-50/40 border-b border-amber-100/80">
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-xs font-bold text-stone-900 uppercase tracking-wider">
-            Select Your Package Options (3 Dropboxes)
+            Select Your Package Options
           </h4>
           <span className="text-[11px] text-amber-800 font-semibold bg-amber-100 px-2 py-0.5 rounded-full">
             Live Pricing
@@ -76,9 +76,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
               <option value={100}>In Rs.100 Stamp Paper</option>
               <option value={200}>In Rs.200 Stamp Paper</option>
             </select>
-            <p className="text-[10px] text-stone-500 mt-1">
-              {stampPaper === 100 ? 'Standard 11-mo tenancy' : 'High value / 200 denomination'}
-            </p>
+            
           </div>
 
           {/* Dropbox 2: Courier Region */}
@@ -99,27 +97,23 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
                 Within Tamilnadu (₹{stampPaper === 100 ? pricing.stamp100TamilNadu : pricing.stamp200TamilNadu}/-)
               </option>
             </select>
-            <p className="text-[10px] text-stone-500 mt-1">
-              {location === 'Within Chennai' ? 'Local Chennai doorstep delivery' : 'All districts in Tamil Nadu'}
-            </p>
+          
           </div>
 
-          {/* Dropbox 3: Notary Signature */}
+          {/* Option 3: Notary Signature */}
           <div>
-            <label htmlFor="card-notary" className="block text-xs font-bold text-stone-700 mb-1">
-              3. Notary Signature
+            <label htmlFor="card-notary" className="flex items-center gap-2 text-xs font-bold text-stone-700 mb-1 cursor-pointer">
+              <input
+                id="card-notary"
+                type="checkbox"
+                checked={includeNotary}
+                onChange={(e) => setIncludeNotary(e.target.checked)}
+                className="h-4 w-4 shrink-0 rounded border-stone-300 accent-amber-600 focus:ring-2 focus:ring-amber-500"
+              />
+              <span>3. Include Notary Signature (+₹{pricing.notaryExtraFee})</span>
             </label>
-            <select
-              id="card-notary"
-              value={includeNotary ? 'yes' : 'no'}
-              onChange={(e) => setIncludeNotary(e.target.value === 'yes')}
-              className="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white text-xs font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
-            >
-              <option value="no">Without notary signature (₹0)</option>
-              <option value="yes">With notary signature Rs.{pricing.notaryExtraFee}/- extra</option>
-            </select>
-            <p className="text-[10px] text-stone-500 mt-1">
-              {includeNotary ? 'Advocate Notary attestation and seal' : 'Standard agreement print & stamp paper'}
+            <p className="text-[10px] text-stone-500 mt-1 pl-6">
+              {includeNotary ? 'Advocate Notary attestation and seal' :  ' '}
             </p>
           </div>
         </div>
@@ -172,7 +166,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
             <div>
               <h4 className="font-bold text-stone-900 text-sm">Courier Charges ({location})</h4>
               <p className="text-xs text-stone-500 mt-0.5">
-                Professional Courier express delivery with physical dispatch tracking
+                Courier delivery with dispatch tracking
               </p>
             </div>
           </div>
@@ -227,7 +221,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
         </div>
         <div className="flex items-center gap-2 text-xs text-stone-700 font-medium">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>Dispatched via Professional Courier with tracking ID</span>
+          <span>Courier dispatch with tracking ID</span>
         </div>
 
         {showCta && (

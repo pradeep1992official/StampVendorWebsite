@@ -90,6 +90,19 @@ export const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ order, onS
 
         {/* Details Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          {(order.payment.totalBeforeCredits !== undefined || (order.payment.referralCreditApplied ?? 0) > 0) && (
+            <div className="space-y-1 rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:col-span-2">
+              <span className="block text-xs font-bold text-emerald-900">Payment summary</span>
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-stone-700">
+                <span>Order total: ₹{(order.payment.totalBeforeCredits ?? order.payment.amount ?? 0).toLocaleString('en-IN')}</span>
+                {(order.payment.referralCreditApplied ?? 0) > 0 && (
+                  <span>Referral credit: −₹{order.payment.referralCreditApplied?.toLocaleString('en-IN')}</span>
+                )}
+                <strong>Paid: ₹{(order.payment.amount ?? 0).toLocaleString('en-IN')}</strong>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-1 bg-stone-50 p-4 rounded-xl border border-stone-200/80">
             <span className="font-bold text-stone-800 block text-xs">Landlord (Owner)</span>
             <p className="text-stone-600">{order.ownerDetails.fullName}</p>
@@ -149,9 +162,9 @@ export const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ order, onS
               </p>
             </div>
             <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/70 space-y-1">
-              <span className="font-bold text-amber-900 block">3. Professional Courier Dispatch</span>
+              <span className="font-bold text-amber-900 block">3. Courier Dispatch</span>
               <p className="text-stone-600 leading-relaxed">
-                1 physical original document is sent to your address with a Professional Courier tracking code.
+                1 physical original document is sent to your address with courier tracking details.
               </p>
             </div>
           </div>

@@ -58,10 +58,13 @@ export interface ProofUploads {
 export interface OrderPayment {
   status: PaymentStatus;
   amount?: number;
-  gateway?: 'PhonePe';
+  totalBeforeCredits?: number;
+  referralCreditApplied?: number;
+  gateway?: 'PhonePe' | 'ReferralCredit' | 'Razorpay';
   phonepeMerchantOrderId?: string;
   phonepeMerchantOrderIds?: string[];
   phonepeInitiatedAt?: number;
+  phonepeReturnUrl?: string;
   phonepeTransactionId?: string;
   phonepeRedirectUrl?: string;
   razorpayOrderId?: string;
@@ -70,7 +73,7 @@ export interface OrderPayment {
 }
 
 export interface OrderCourier {
-  courierName: 'India Post Speed Post' | 'Blue Dart Express' | 'Professional Courier';
+  courierName: string;
   trackingNumber: string;
   dispatchedAt: string;
   estimatedDelivery?: string;
@@ -79,6 +82,7 @@ export interface OrderCourier {
 export interface Order {
   orderId: string;
   ownerUid: string;
+  referralCode?: string;
   customerEmail: string;
   customerPhone?: string;
   ownerDetails: PersonDetails;

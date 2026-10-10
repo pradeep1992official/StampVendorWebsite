@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { getAdminDb } from '@/lib/firebase-admin';
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,10 +22,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const orderRef = doc(db, 'orders', cleanOrderId);
-    const snap = await getDoc(orderRef);
+    const snap = await getAdminDb().collection('orders').doc(cleanOrderId).get();
 
-    if (!snap.exists()) {
+    if (!snap.exists) {
       return NextResponse.json(
         { success: false, error: 'No order found with this Reference ID. Please verify and retry.' },
         { status: 404 }
@@ -34,6 +32,9 @@ export async function POST(req: NextRequest) {
     }
 
     const data = snap.data();
+    if (!data) {
+      throw new Error('Order document exists but contains no data.');
+    }
 
     // Verify phone against owner phone or tenant phone
     const ownerPhone = data.ownerDetails?.phone?.replace(/[^0-9]/g, '');

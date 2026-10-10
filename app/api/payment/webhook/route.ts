@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { getAdminDb } from '@/lib/firebase-admin';
+import { confirmPaidOrderAndGrantReferral } from '@/lib/referral-admin';
 
 // In-memory idempotency cache for recently processed webhook events
 const processedEvents = new Set<string>();
@@ -55,25 +55,31 @@ export async function POST(req: NextRequest) {
       const amountPaid = paymentEntity?.amount ? paymentEntity.amount / 100 : 0;
 
       if (orderId) {
-        const orderRef = doc(db, 'orders', orderId);
-        const orderSnap = await getDoc(orderRef);
+        const orderRef = getAdminDb().collection('orders').doc(orderId);
+        const orderSnap = await orderRef.get();
 
-        if (orderSnap.exists()) {
+        if (orderSnap.exists) {
           const currentOrder = orderSnap.data();
-          // Ensure we do not overwrite if already confirmed
+          if (!currentOrder) {
+            throw new Error(`Order ${orderId} exists but has no readable data.`);
+          }
           if (currentOrder.payment?.status !== 'Paid') {
-            await updateDoc(orderRef, {
-              'payment.status': 'Paid',
-              'payment.razorpayPaymentId': paymentId || 'VERIFIED_WEBHOOK',
-              'payment.amount': amountPaid || currentOrder.payment?.amount,
-              'payment.paidAt': new Date().toISOString(),
-              status: 'Under verification', // Move forward to verification
-              updatedAt: new Date().toISOString(),
+            if (Math.round(Number(currentOrder.payment?.amount) * 100) !== paymentEntity?.amount) {
+              console.error('Razorpay webhook amount mismatch for order:', orderId);
+              return NextResponse.json({ error: 'Payment amount did not match the order.' }, { status: 409 });
+            }
+
+            await confirmPaidOrderAndGrantReferral(orderId, {
+              paymentUpdates: {
+                'payment.gateway': 'Razorpay',
+                'payment.razorpayPaymentId': paymentId || 'VERIFIED_WEBHOOK',
+                'payment.amount': amountPaid,
+              },
             });
 
             // Create admin audit log
             const logId = `LOG_${Date.now()}`;
-            await setDoc(doc(db, 'adminLogs', logId), {
+            await getAdminDb().collection('adminLogs').doc(logId).set({
               logId,
               orderId,
               adminUid: 'SYSTEM_WEBHOOK',

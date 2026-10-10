@@ -23,7 +23,13 @@ import {
   IndianRupee,
   Save,
   RotateCcw,
-  Check
+  Check,
+  Mail,
+  Package,
+  Gift,
+  MessageSquare,
+  Phone,
+  MapPin
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { db } from '@/lib/firebase';
@@ -36,11 +42,23 @@ import {
 } from 'firebase/firestore';
 import { Order, OrderStatus } from '@/lib/types';
 import { checkIsAdmin } from '@/lib/order-service';
-import { VENDOR_CONFIG } from '@/src/config/vendor';
 import { ADMIN_EMAIL, ADMIN_EMAILS, isUserAdmin } from '@/src/config/admin';
 import { RentalAgreementDocument } from '@/components/agreement/RentalAgreementDocument';
 import { DEFAULT_PRICING, PricingConfig } from '@/src/config/pricing';
 import { getPricingConfig, savePricingConfig } from '@/lib/pricing-service';
+import { DEFAULT_SUPPORT_EMAIL, getSupportEmail, saveSupportEmail } from '@/lib/support-email';
+import { DEFAULT_COURIER_PARTNERS, getCourierPartners, saveCourierPartners } from '@/lib/courier-service';
+
+interface Enquiry {
+  enquiryId: string;
+  name: string;
+  phone: string;
+  district: string;
+  message: string;
+  status: 'New' | 'In Progress' | 'Resolved';
+  createdAt: string;
+  updatedAt?: string;
+}
 
 export function AdminClient() {
   const { user, loading: authLoading, signInWithGoogle, authError } = useAuth();
@@ -49,17 +67,34 @@ export function AdminClient() {
   const [signingIn, setSigningIn] = useState<boolean>(false);
   const [localSignInError, setLocalSignInError] = useState<string | null>(null);
 
-  // Active Tab: Orders Fulfillment or Pricing Settings
-  const [activeTab, setActiveTab] = useState<'orders' | 'pricing'>('orders');
+  // Active Admin Console tab
+  const [activeTab, setActiveTab] = useState<'orders' | 'enquiries' | 'pricing' | 'support' | 'couriers' | 'referrals'>('orders');
 
   // Pricing State
   const [pricingConfig, setPricingConfig] = useState<PricingConfig>(DEFAULT_PRICING);
   const [savingPricing, setSavingPricing] = useState<boolean>(false);
   const [pricingSavedToast, setPricingSavedToast] = useState<boolean>(false);
+  const [supportEmail, setSupportEmail] = useState(DEFAULT_SUPPORT_EMAIL);
+  const [savingSupportEmail, setSavingSupportEmail] = useState<boolean>(false);
+  const [supportEmailSavedToast, setSupportEmailSavedToast] = useState<boolean>(false);
+  const [courierPartners, setCourierPartners] = useState<string[]>(DEFAULT_COURIER_PARTNERS);
+  const [newCourierPartner, setNewCourierPartner] = useState('');
+  const [savingCourierPartners, setSavingCourierPartners] = useState(false);
+  const [courierPartnersSavedToast, setCourierPartnersSavedToast] = useState(false);
+  const [referralRewardAmount, setReferralRewardAmount] = useState(100);
+  const [referralStats, setReferralStats] = useState({ rewardedReferrals: 0, totalCreditsIssued: 0 });
+  const [savingReferralSettings, setSavingReferralSettings] = useState(false);
+  const [referralSettingsSavedToast, setReferralSettingsSavedToast] = useState(false);
 
   // Orders State
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState<boolean>(false);
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+  const [loadingEnquiries, setLoadingEnquiries] = useState<boolean>(false);
+  const [enquiriesError, setEnquiriesError] = useState<string | null>(null);
+  const [enquirySearch, setEnquirySearch] = useState('');
+  const [enquiryStatusFilter, setEnquiryStatusFilter] = useState<'ALL' | Enquiry['status']>('ALL');
+  const [updatingEnquiryId, setUpdatingEnquiryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
@@ -76,7 +111,7 @@ export function AdminClient() {
   const [showCorrectionForm, setShowCorrectionForm] = useState<boolean>(false);
 
   // Courier Dispatch State
-  const [courierName, setCourierName] = useState<'India Post Speed Post' | 'Blue Dart Express'>('India Post Speed Post');
+  const [courierName, setCourierName] = useState(DEFAULT_COURIER_PARTNERS[0]);
   const [trackingNumber, setTrackingNumber] = useState<string>('');
   const [showCourierForm, setShowCourierForm] = useState<boolean>(false);
 
@@ -99,6 +134,44 @@ export function AdminClient() {
     }
   }, []);
 
+  const fetchEnquiries = useCallback(async () => {
+    setLoadingEnquiries(true);
+    setEnquiriesError(null);
+    try {
+      const snap = await getDocs(collection(db, 'enquiries'));
+      const list: Enquiry[] = [];
+      snap.forEach((enquiryDoc) => {
+        list.push(enquiryDoc.data() as Enquiry);
+      });
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setEnquiries(list);
+    } catch (error) {
+      console.error('Error loading enquiries:', error);
+      setEnquiriesError('Could not load enquiries. Check your admin access and try again.');
+    } finally {
+      setLoadingEnquiries(false);
+    }
+  }, []);
+
+  const handleUpdateEnquiryStatus = async (enquiry: Enquiry, status: Enquiry['status']) => {
+    if (status === enquiry.status || updatingEnquiryId) return;
+
+    setUpdatingEnquiryId(enquiry.enquiryId);
+    setEnquiriesError(null);
+    const updatedAt = new Date().toISOString();
+    try {
+      await updateDoc(doc(db, 'enquiries', enquiry.enquiryId), { status, updatedAt });
+      setEnquiries((current) => current.map((item) =>
+        item.enquiryId === enquiry.enquiryId ? { ...item, status, updatedAt } : item
+      ));
+    } catch (error) {
+      console.error('Error updating enquiry status:', error);
+      setEnquiriesError(`Could not update the status for enquiry ${enquiry.enquiryId}. Please try again.`);
+    } finally {
+      setUpdatingEnquiryId(null);
+    }
+  };
+
   // Verify Admin Role on Auth Ready and fetch orders asynchronously
   useEffect(() => {
     if (!user) {
@@ -115,11 +188,40 @@ export function AdminClient() {
 
         if (hasClaim) {
           await fetchOrderList();
+          await fetchEnquiries();
           try {
             const cfg = await getPricingConfig();
             if (isMounted) setPricingConfig(cfg);
           } catch (e) {
             console.warn('Could not load pricing settings:', e);
+          }
+          const configuredSupportEmail = await getSupportEmail();
+          if (isMounted) setSupportEmail(configuredSupportEmail);
+          try {
+            const configuredCourierPartners = await getCourierPartners();
+            if (isMounted) {
+              setCourierPartners(configuredCourierPartners);
+              setCourierName(configuredCourierPartners[0] ?? DEFAULT_COURIER_PARTNERS[0]);
+            }
+          } catch (error) {
+            console.warn('Could not load courier partner settings:', error);
+          }
+          try {
+            const idToken = await user!.getIdToken();
+            const response = await fetch('/api/admin/referrals', {
+              headers: { Authorization: `Bearer ${idToken}` },
+            });
+            if (!response.ok) throw new Error('Referral settings request failed.');
+            const referralData = await response.json();
+            if (isMounted) {
+              setReferralRewardAmount(referralData.rewardAmount);
+              setReferralStats({
+                rewardedReferrals: referralData.rewardedReferrals,
+                totalCreditsIssued: referralData.totalCreditsIssued,
+              });
+            }
+          } catch (error) {
+            console.error('Could not load referral settings:', error);
           }
         }
       } catch (err) {
@@ -136,23 +238,48 @@ export function AdminClient() {
     return () => {
       isMounted = false;
     };
-  }, [user, fetchOrderList]);
+  }, [user, fetchOrderList, fetchEnquiries]);
 
   // Handle Status Update
   const handleUpdateStatus = async () => {
     if (!selectedOrder || !user) return;
     setUpdatingStatus(true);
+    const nowIso = new Date().toISOString();
+    const trimmedStatusNote = statusNotes.trim();
+    const statusUpdate: {
+      status: OrderStatus;
+      updatedAt: string;
+      notes?: string;
+    } = {
+      status: newStatus,
+      updatedAt: nowIso,
+    };
+
+    if (trimmedStatusNote) {
+      statusUpdate.notes = `${selectedOrder.notes || ''}\n[${nowIso}] ${trimmedStatusNote}`.trim();
+    }
+
     try {
       const orderRef = doc(db, 'orders', selectedOrder.orderId);
-      const nowIso = new Date().toISOString();
+      await updateDoc(orderRef, statusUpdate);
+    } catch (err) {
+      console.error('Status update error:', err);
+      alert('Failed to update order status. Please verify the deployed Firestore rules and try again.');
+      setUpdatingStatus(false);
+      return;
+    }
 
-      await updateDoc(orderRef, {
-        status: newStatus,
-        updatedAt: nowIso,
-        notes: statusNotes ? `${selectedOrder.notes || ''}\n[${nowIso}] ${statusNotes}`.trim() : selectedOrder.notes,
-      });
+    const updated = {
+      ...selectedOrder,
+      status: newStatus,
+      updatedAt: nowIso,
+      ...(trimmedStatusNote ? { notes: statusUpdate.notes } : {}),
+    };
+    setSelectedOrder(updated);
+    setOrders((prev) => prev.map((o) => (o.orderId === updated.orderId ? updated : o)));
+    setStatusNotes('');
 
-      // Write administrative audit log
+    try {
       const logId = `LOG_${Date.now()}`;
       await setDoc(doc(db, 'adminLogs', logId), {
         logId,
@@ -162,19 +289,13 @@ export function AdminClient() {
         action: 'STATUS_CHANGE',
         previousStatus: selectedOrder.status,
         newStatus,
-        notes: statusNotes || 'Status updated from admin console',
+        notes: trimmedStatusNote || 'Status updated from admin console',
         timestamp: nowIso,
       });
-
-      // Update local state
-      const updated = { ...selectedOrder, status: newStatus, updatedAt: nowIso };
-      setSelectedOrder(updated);
-      setOrders((prev) => prev.map((o) => (o.orderId === updated.orderId ? updated : o)));
-      setStatusNotes('');
       alert(`Status updated to ${newStatus}`);
     } catch (err) {
-      console.error('Status update error:', err);
-      alert('Failed to update status.');
+      console.error('Status updated but audit log write failed:', err);
+      alert(`Status updated to ${newStatus}, but the audit log could not be saved. Please check admin log permissions.`);
     } finally {
       setUpdatingStatus(false);
     }
@@ -308,6 +429,126 @@ export function AdminClient() {
     }
   };
 
+  const handleSaveReferralSettings = async () => {
+    if (!user) return;
+    setSavingReferralSettings(true);
+    setReferralSettingsSavedToast(false);
+    try {
+      const idToken = await user.getIdToken();
+      const response = await fetch('/api/admin/referrals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ rewardAmount: referralRewardAmount }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Could not save referral settings.');
+
+      const logId = `LOG_${Date.now()}`;
+      await setDoc(doc(db, 'adminLogs', logId), {
+        logId,
+        orderId: 'REFERRAL_CONFIG',
+        adminUid: user.uid,
+        adminEmail: user.email || 'admin',
+        action: 'REFERRAL_REWARD_UPDATED',
+        notes: `Referral reward amount set to ₹${referralRewardAmount}.`,
+        timestamp: new Date().toISOString(),
+      });
+      setReferralSettingsSavedToast(true);
+      setTimeout(() => setReferralSettingsSavedToast(false), 4000);
+    } catch (error) {
+      console.error('Failed to save referral settings:', error);
+      alert(error instanceof Error ? error.message : 'Failed to save referral settings.');
+    } finally {
+      setSavingReferralSettings(false);
+    }
+  };
+
+  const handleSaveSupportEmail = async () => {
+    if (!user) return;
+    const normalizedEmail = supportEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      alert('Enter a valid support email address.');
+      return;
+    }
+
+    setSavingSupportEmail(true);
+    setSupportEmailSavedToast(false);
+    try {
+      await saveSupportEmail(normalizedEmail, user.email || ADMIN_EMAIL);
+      const logId = `LOG_${Date.now()}`;
+      await setDoc(doc(db, 'adminLogs', logId), {
+        logId,
+        orderId: 'SUPPORT_SETTINGS',
+        adminUid: user.uid,
+        adminEmail: user.email || 'admin',
+        action: 'SUPPORT_EMAIL_UPDATED',
+        notes: `Updated support email to ${normalizedEmail}`,
+        timestamp: new Date().toISOString(),
+      });
+      setSupportEmail(normalizedEmail);
+      setSupportEmailSavedToast(true);
+      setTimeout(() => setSupportEmailSavedToast(false), 4000);
+    } catch (err) {
+      console.error('Failed to save support email:', err);
+      alert('Failed to save support email. Please check permissions and try again.');
+    } finally {
+      setSavingSupportEmail(false);
+    }
+  };
+
+  const handleAddCourierPartner = () => {
+    const partner = newCourierPartner.trim();
+    if (!partner) return;
+    if (courierPartners.some((existing) => existing.toLowerCase() === partner.toLowerCase())) {
+      alert('That courier partner is already in the list.');
+      return;
+    }
+    setCourierPartners((current) => [...current, partner]);
+    setCourierName(partner);
+    setNewCourierPartner('');
+    setCourierPartnersSavedToast(false);
+  };
+
+  const handleRemoveCourierPartner = (partner: string) => {
+    if (courierPartners.length <= 1) {
+      alert('At least one courier partner must remain in the list.');
+      return;
+    }
+    const nextPartners = courierPartners.filter((existing) => existing !== partner);
+    setCourierPartners(nextPartners);
+    if (courierName === partner) setCourierName(nextPartners[0]);
+    setCourierPartnersSavedToast(false);
+  };
+
+  const handleSaveCourierPartners = async () => {
+    if (!user) return;
+    setSavingCourierPartners(true);
+    setCourierPartnersSavedToast(false);
+    try {
+      await saveCourierPartners(courierPartners, user.email || ADMIN_EMAIL);
+      const logId = `LOG_${Date.now()}`;
+      await setDoc(doc(db, 'adminLogs', logId), {
+        logId,
+        orderId: 'COURIER_SETTINGS',
+        adminUid: user.uid,
+        adminEmail: user.email || 'admin',
+        action: 'COURIER_PARTNERS_UPDATED',
+        notes: `Updated courier partners: ${courierPartners.join(', ')}`,
+        timestamp: new Date().toISOString(),
+      });
+      setCourierPartnersSavedToast(true);
+      setTimeout(() => setCourierPartnersSavedToast(false), 4000);
+    } catch (error) {
+      console.error('Failed to save courier partners:', error);
+      alert('Failed to save courier partners. Please check permissions and try again.');
+    } finally {
+      setSavingCourierPartners(false);
+    }
+  };
+
   // Handle Reset to Default Rates
   const handleResetPricing = () => {
     if (window.confirm('Reset all pricing rates to default values (Rs.350 / 400 / 450 / 500 / 200)?')) {
@@ -336,6 +577,17 @@ export function AdminClient() {
   ).length;
   const draftingCount = orders.filter((o) => o.status === 'Drafting').length;
   const dispatchedCount = orders.filter((o) => o.status === 'Dispatched').length;
+  const filteredEnquiries = enquiries.filter((enquiry) => {
+    const query = enquirySearch.trim().toLowerCase();
+    const matchesSearch = !query || [
+      enquiry.name,
+      enquiry.phone,
+      enquiry.district,
+      enquiry.message,
+      enquiry.enquiryId,
+    ].some((value) => value.toLowerCase().includes(query));
+    return matchesSearch && (enquiryStatusFilter === 'ALL' || enquiry.status === enquiryStatusFilter);
+  });
 
   if (authLoading || (user && checkingRole)) {
     return (
@@ -424,7 +676,7 @@ export function AdminClient() {
             Vendor Fulfillment Desk
           </h1>
           <p className="text-xs text-stone-500 mt-0.5">
-            Licence #{VENDOR_CONFIG.licenceNumber} • Admin: {user.email}
+            Admin: {user.email}
           </p>
         </div>
 
@@ -444,6 +696,19 @@ export function AdminClient() {
 
           <button
             type="button"
+            onClick={() => setActiveTab('enquiries')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'enquiries'
+                ? 'bg-indigo-700 text-white shadow-sm'
+                : 'bg-white text-stone-700 hover:bg-indigo-50 border border-indigo-300'
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Enquiries ({enquiries.length})</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('pricing')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'pricing'
@@ -455,12 +720,51 @@ export function AdminClient() {
             <span>Pricing & Rates Settings</span>
           </button>
 
-          {activeTab === 'orders' && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('support')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'support'
+                ? 'bg-sky-700 text-white shadow-sm'
+                : 'bg-white text-stone-700 hover:bg-sky-50 border border-sky-300'
+            }`}
+          >
+            <Mail className="w-3.5 h-3.5" />
+            <span>Support Settings</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('couriers')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'couriers'
+                ? 'bg-emerald-700 text-white shadow-sm'
+                : 'bg-white text-stone-700 hover:bg-emerald-50 border border-emerald-300'
+            }`}
+          >
+            <Package className="w-3.5 h-3.5" />
+            <span>Courier Partners</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('referrals')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'referrals'
+                ? 'bg-purple-700 text-white shadow-sm'
+                : 'bg-white text-stone-700 hover:bg-purple-50 border border-purple-300'
+            }`}
+          >
+            <Gift className="w-3.5 h-3.5" />
+            <span>Referral Credits</span>
+          </button>
+
+          {(activeTab === 'orders' || activeTab === 'enquiries') && (
             <button
               type="button"
-              onClick={fetchOrderList}
+              onClick={activeTab === 'orders' ? fetchOrderList : fetchEnquiries}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-stone-300 hover:bg-stone-100 text-xs font-semibold text-stone-700 transition-colors cursor-pointer"
-              title="Refresh order queue"
+              title={activeTab === 'orders' ? 'Refresh order queue' : 'Refresh enquiries'}
             >
               <RefreshCw className="w-3.5 h-3.5" />
             </button>
@@ -468,7 +772,321 @@ export function AdminClient() {
         </div>
       </div>
 
-      {activeTab === 'pricing' ? (
+      {activeTab === 'enquiries' ? (
+        <section className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5 animate-in fade-in duration-200">
+          <div className="border-b border-stone-200 pb-5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-800 bg-indigo-100 px-2.5 py-0.5 rounded-full">
+              Customer Contact
+            </span>
+            <h2 className="text-xl font-bold text-stone-900 mt-1">Submitted Enquiries</h2>
+            <p className="text-xs text-stone-500 mt-0.5">
+              Contact form submissions, newest first.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+              <input
+                type="search"
+                value={enquirySearch}
+                onChange={(event) => setEnquirySearch(event.target.value)}
+                placeholder="Search name, phone, district, message, or reference"
+                aria-label="Search enquiries"
+                className="w-full rounded-xl border border-stone-300 bg-white py-2.5 pl-9 pr-3 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </label>
+            <label className="relative block">
+              <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+              <select
+                value={enquiryStatusFilter}
+                onChange={(event) => setEnquiryStatusFilter(event.target.value as typeof enquiryStatusFilter)}
+                aria-label="Filter enquiries by status"
+                className="w-full appearance-none rounded-xl border border-stone-300 bg-white py-2.5 pl-9 pr-3 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="ALL">All statuses</option>
+                <option value="New">New</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+              </select>
+            </label>
+          </div>
+
+          {enquiriesError && (
+            <div className="p-3 rounded-xl border border-rose-200 bg-rose-50 text-sm text-rose-800" role="alert">
+              {enquiriesError}
+              <button
+                type="button"
+                onClick={fetchEnquiries}
+                className="ml-2 font-bold underline"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {loadingEnquiries ? (
+            <div className="py-10 text-center text-sm text-stone-500">Loading enquiries...</div>
+          ) : enquiries.length === 0 ? (
+            <div className="py-10 text-center text-sm text-stone-500">
+              {enquiriesError ? 'Enquiries are unavailable.' : 'No enquiries have been submitted yet.'}
+            </div>
+          ) : filteredEnquiries.length === 0 ? (
+            <div className="py-10 text-center text-sm text-stone-500">
+              No enquiries match your search and status filter.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredEnquiries.map((enquiry) => (
+                <article key={enquiry.enquiryId} className="rounded-2xl border border-stone-200 bg-stone-50 p-4 sm:p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div>
+                      <h3 className="font-bold text-stone-900">{enquiry.name}</h3>
+                      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-600">
+                        <a href={`tel:${enquiry.phone}`} className="inline-flex items-center gap-1 hover:text-amber-800">
+                          <Phone className="h-3.5 w-3.5" />
+                          {enquiry.phone}
+                        </a>
+                        {enquiry.district && enquiry.district !== 'Not specified' && (
+                          <span className="inline-flex items-center gap-1">
+                            <MapPin className="h-3.5 w-3.5" />
+                            {enquiry.district}
+                          </span>
+                        )}
+                        <a
+                          href={`https://wa.me/${enquiry.phone}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:text-emerald-900"
+                        >
+                          WhatsApp
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                      <label className="sr-only" htmlFor={`enquiry-status-${enquiry.enquiryId}`}>
+                        Update status for {enquiry.name}
+                      </label>
+                      <select
+                        id={`enquiry-status-${enquiry.enquiryId}`}
+                        value={enquiry.status}
+                        disabled={updatingEnquiryId !== null}
+                        onChange={(event) => void handleUpdateEnquiryStatus(enquiry, event.target.value as Enquiry['status'])}
+                        className="rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-stone-800 disabled:cursor-wait disabled:opacity-60"
+                      >
+                        <option value="New">New</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                      </select>
+                      {updatingEnquiryId === enquiry.enquiryId && (
+                        <span className="text-[11px] text-stone-500" role="status">Saving…</span>
+                      )}
+                      <time className="w-full text-left text-[11px] text-stone-500 sm:text-right">
+                        {new Date(enquiry.createdAt).toLocaleString()}
+                      </time>
+                    </div>
+                  </div>
+                  <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-relaxed text-stone-700">
+                    {enquiry.message}
+                  </p>
+                  <p className="mt-3 text-[10px] font-mono text-stone-400">
+                    Reference: {enquiry.enquiryId}
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : activeTab === 'referrals' ? (
+        <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-in fade-in duration-200">
+          <div className="border-b border-stone-200 pb-5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-purple-800 bg-purple-100 px-2.5 py-0.5 rounded-full">
+              Customer Rewards
+            </span>
+            <h2 className="text-xl font-bold text-stone-900 mt-1">Referral Credit Settings</h2>
+            <p className="text-xs text-stone-500 mt-0.5">
+              Set the reward issued to the referrer after a new customer’s first order is paid. Changes apply to future eligible payments.
+            </p>
+          </div>
+
+          {referralSettingsSavedToast && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold" role="status">
+              Referral reward settings saved.
+            </div>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Eligible referrals</p>
+              <p className="mt-2 text-2xl font-black text-stone-900">{referralStats.rewardedReferrals}</p>
+            </div>
+            <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Credits issued</p>
+              <p className="mt-2 text-2xl font-black text-stone-900">₹{referralStats.totalCreditsIssued.toLocaleString('en-IN')}</p>
+            </div>
+          </div>
+
+          <div className="max-w-md">
+            <label htmlFor="referral-reward-amount" className="block text-xs font-bold text-stone-700">
+              Reward per eligible referral (₹)
+            </label>
+            <input
+              id="referral-reward-amount"
+              type="number"
+              min="0"
+              max="100000"
+              step="1"
+              value={referralRewardAmount}
+              onChange={(event) => setReferralRewardAmount(Number(event.target.value))}
+              className="mt-1.5 w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+            <p className="mt-1 text-xs text-stone-500">Use 0 to pause new rewards. Existing customer balances are not changed.</p>
+          </div>
+
+          <div className="flex justify-end border-t border-stone-200 pt-5">
+            <button
+              type="button"
+              disabled={savingReferralSettings || !Number.isSafeInteger(referralRewardAmount) || referralRewardAmount < 0 || referralRewardAmount > 100000}
+              onClick={() => void handleSaveReferralSettings()}
+              className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-2.5 text-xs font-bold text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-400"
+            >
+              {savingReferralSettings
+                ? <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                : <Save className="h-3.5 w-3.5" />}
+              <span>{savingReferralSettings ? 'Saving…' : 'Save Referral Settings'}</span>
+            </button>
+          </div>
+        </div>
+      ) : activeTab === 'couriers' ? (
+        <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-in fade-in duration-200">
+          <div className="border-b border-stone-200 pb-5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+              Dispatch Options
+            </span>
+            <h2 className="text-xl font-bold text-stone-900 mt-1">Courier Partners</h2>
+            <p className="text-xs text-stone-500 mt-0.5">
+              Manage the courier choices available when dispatching an order. New options will be available after saving.
+            </p>
+          </div>
+
+          {courierPartnersSavedToast && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2 font-semibold" role="status">
+              <Check className="w-4 h-4 text-emerald-600" />
+              <span>Courier partners saved.</span>
+            </div>
+          )}
+
+          <div className="max-w-xl space-y-4">
+            <ul className="space-y-2">
+              {courierPartners.map((partner) => (
+                <li key={partner} className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-sm">
+                  <span className="font-semibold text-stone-800">{partner}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCourierPartner(partner)}
+                    className="text-xs font-semibold text-rose-700 hover:text-rose-900"
+                    aria-label={`Remove ${partner}`}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={newCourierPartner}
+                onChange={(event) => setNewCourierPartner(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleAddCourierPartner();
+                  }
+                }}
+                maxLength={80}
+                placeholder="Enter courier partner name"
+                aria-label="New courier partner name"
+                className="flex-1 px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+              <button
+                type="button"
+                disabled={!newCourierPartner.trim()}
+                onClick={handleAddCourierPartner}
+                className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 disabled:bg-stone-400 text-white rounded-xl text-xs font-bold"
+              >
+                Add Courier
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-end border-t border-stone-200 pt-5">
+            <button
+              type="button"
+              disabled={savingCourierPartners || courierPartners.length === 0}
+              onClick={() => void handleSaveCourierPartners()}
+              className="px-5 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:bg-stone-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm"
+            >
+              {savingCourierPartners
+                ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                : <Save className="w-3.5 h-3.5" />}
+              <span>{savingCourierPartners ? 'Saving...' : 'Save Courier Partners'}</span>
+            </button>
+          </div>
+        </div>
+      ) : activeTab === 'support' ? (
+        <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-in fade-in duration-200">
+          <div className="border-b border-stone-200 pb-5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-sky-800 bg-sky-100 px-2.5 py-0.5 rounded-full">
+              Customer Contact
+            </span>
+            <h2 className="text-xl font-bold text-stone-900 mt-1">Support Email Address</h2>
+            <p className="text-xs text-stone-500 mt-0.5">
+              This address appears on the Contact page, site footer, privacy policy, and refund policy.
+            </p>
+          </div>
+
+          {supportEmailSavedToast && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2 font-semibold" role="status">
+              <Check className="w-4 h-4 text-emerald-600" />
+              <span>Support email saved.</span>
+            </div>
+          )}
+
+          <div className="max-w-xl space-y-2">
+            <label htmlFor="support-email" className="block text-xs font-bold text-stone-700">
+              Public support email
+            </label>
+            <input
+              id="support-email"
+              type="email"
+              autoComplete="email"
+              value={supportEmail}
+              onChange={(event) => setSupportEmail(event.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              placeholder="support@example.com"
+            />
+            <p className="text-[11px] text-stone-500">
+              Customer enquiry forms are currently saved in the admin system; this setting changes the displayed email address, not automatic enquiry email delivery.
+            </p>
+          </div>
+
+          <div className="flex justify-end border-t border-stone-200 pt-5">
+            <button
+              type="button"
+              disabled={savingSupportEmail}
+              onClick={() => void handleSaveSupportEmail()}
+              className="px-5 py-2.5 bg-stone-900 hover:bg-stone-800 disabled:bg-stone-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm"
+            >
+              {savingSupportEmail
+                ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                : <Save className="w-3.5 h-3.5" />}
+              <span>{savingSupportEmail ? 'Saving...' : 'Save Support Email'}</span>
+            </button>
+          </div>
+        </div>
+      ) : activeTab === 'pricing' ? (
         /* PRICING & RATES SETTINGS VIEW */
         <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-8 animate-in fade-in duration-200">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 pb-5">
@@ -829,7 +1447,7 @@ export function AdminClient() {
 
       {/* Order Detail Modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div className={`fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto ${showAgreementPrint ? 'agreement-print-modal' : ''}`}>
           {showAgreementPrint ? (
             <div className="bg-white rounded-3xl max-w-5xl w-full p-6 sm:p-8 shadow-xl max-h-[95vh] overflow-y-auto space-y-4">
               <RentalAgreementDocument
@@ -926,10 +1544,13 @@ export function AdminClient() {
                 <div className="flex justify-between items-center border-b border-stone-200/80 pb-1.5">
                   <strong className="block font-bold text-stone-900">Agreement Terms & Selected Stamping Package</strong>
                   <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
-                    Order Total: ₹{selectedOrder.payment?.amount?.toLocaleString('en-IN') || (selectedOrder.agreementTerms.stampPaperDenomination === 200 ? (selectedOrder.agreementTerms.deliveryLocation === 'Within Tamil Nadu' ? 500 : 450) : (selectedOrder.agreementTerms.deliveryLocation === 'Within Tamil Nadu' ? 400 : 350)) + (selectedOrder.agreementTerms.includeNotary ? 200 : 0)}
+                    Order Total: ₹{(selectedOrder.payment?.totalBeforeCredits ?? selectedOrder.payment?.amount) || (selectedOrder.agreementTerms.stampPaperDenomination === 200 ? (selectedOrder.agreementTerms.deliveryLocation === 'Within Tamil Nadu' ? 500 : 450) : (selectedOrder.agreementTerms.deliveryLocation === 'Within Tamil Nadu' ? 400 : 350)) + (selectedOrder.agreementTerms.includeNotary ? 200 : 0)}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {(selectedOrder.payment?.referralCreditApplied ?? 0) > 0 && (
+                    <div>Referral credit: <strong>−₹{selectedOrder.payment.referralCreditApplied?.toLocaleString('en-IN')}</strong></div>
+                  )}
                   <div>Rent: <strong>₹{selectedOrder.agreementTerms.monthlyRent?.toLocaleString('en-IN')}</strong></div>
                   <div>Advance: <strong>₹{selectedOrder.agreementTerms.securityDeposit?.toLocaleString('en-IN')}</strong></div>
                   <div>Tenure: <strong>{selectedOrder.agreementTerms.tenureMonths} Months</strong></div>
@@ -1127,11 +1748,12 @@ export function AdminClient() {
                       <label className="block text-[11px] font-semibold text-sky-900 mb-1">Courier Partner</label>
                       <select
                         value={courierName}
-                        onChange={(e) => setCourierName(e.target.value as any)}
+                        onChange={(e) => setCourierName(e.target.value)}
                         className="w-full p-2 rounded-xl border border-sky-300 bg-white text-xs text-stone-900"
                       >
-                        <option value="India Post Speed Post">India Post Speed Post</option>
-                        <option value="Blue Dart Express">Blue Dart Express</option>
+                        {courierPartners.map((partner) => (
+                          <option key={partner} value={partner}>{partner}</option>
+                        ))}
                       </select>
                     </div>
 

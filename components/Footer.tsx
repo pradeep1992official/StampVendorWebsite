@@ -4,11 +4,9 @@ import React from 'react';
 import Link from 'next/link';
 import { 
   Mail, 
-  Truck,
-  FileCheck2,
-  FileText
+  Truck
 } from 'lucide-react';
-import { VENDOR_CONFIG } from '@/src/config/vendor';
+import { SupportEmailLink } from '@/components/SupportEmailLink';
 
 export const Footer: React.FC = () => {
   return (
@@ -20,25 +18,23 @@ export const Footer: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-amber-600 flex items-center justify-center text-stone-950 font-black text-sm">
-                TN
+                SS
               </div>
-              <h4 className="font-extrabold text-white text-base sm:text-lg">{VENDOR_CONFIG.tradeName}</h4>
+              <h4 className="font-extrabold text-white text-base sm:text-lg">StampSure</h4>
             </div>
 
             <p className="text-xs text-stone-400 leading-relaxed">
-              Online rental agreement drafting on non-judicial stamp paper with reliable doorstep delivery via Professional Courier across Tamil Nadu.
+              Online rental agreement drafting on non-judicial stamp paper with doorstep delivery and courier tracking across Tamil Nadu.
             </p>
 
             <div className="space-y-2 pt-2 text-xs text-stone-400">
               <div className="flex items-center gap-2.5">
                 <Truck className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>Dispatched via Professional Courier</span>
+                <span>Courier dispatch with tracking</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-amber-500 shrink-0" />
-                <a href={`mailto:${VENDOR_CONFIG.email}`} className="hover:text-amber-400 transition-colors">
-                  {VENDOR_CONFIG.email}
-                </a>
+                <SupportEmailLink className="hover:text-amber-400 transition-colors" />
               </div>
             </div>
           </div>
@@ -50,6 +46,16 @@ export const Footer: React.FC = () => {
               <li>
                 <Link href="/order" className="text-stone-400 hover:text-white transition-colors">
                   11-Month Rental Agreement
+                </Link>
+              </li>
+              <li>
+                <Link href="/rent-receipt" className="text-stone-400 hover:text-white transition-colors">
+                  Generate Rent Receipt
+                </Link>
+              </li>
+              <li>
+                <Link href="/referrals" className="text-stone-400 hover:text-white transition-colors">
+                  Referral Credits
                 </Link>
               </li>
               <li>
@@ -112,9 +118,14 @@ export const Footer: React.FC = () => {
 
         {/* Copyright */}
         <div className="mt-12 pt-6 border-t border-stone-900 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-500 gap-4">
-          <p>© {new Date().getFullYear()} {VENDOR_CONFIG.tradeName}. All rights reserved.</p>
-          <div className="flex items-center gap-2">
-            <span>Tamil Nadu, India</span>
+          <p>© {new Date().getFullYear()} StampSure. All rights reserved.</p>
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+            <p>
+                            <a href="mailto:pradhiip1992official@gmail.com" className="hover:text-amber-400 transition-colors">
+                Contact Developer [pradhiip1992official@gmail.com]
+              </a>
+            </p>
+            {/* <span>Tamil Nadu, India</span> */}
           </div>
         </div>
       </div>

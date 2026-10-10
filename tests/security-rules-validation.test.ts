@@ -16,6 +16,7 @@ interface OrderDataMock {
 const ALLOWED_ORDER_KEYS = [
   'orderId',
   'ownerUid',
+  'referralCode',
   'customerEmail',
   'customerPhone',
   'ownerDetails',
