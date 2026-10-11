@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb, verifyFirebaseIdToken } from '@/lib/firebase-admin';
 import { fetchPhonePeOrderStatus, getPhonePeAccessToken, getPhonePeCredentials } from '@/lib/phonepe';
 import { confirmPaidOrderAndGrantReferral, releaseReferralReservation } from '@/lib/referral-admin';
+import { isTrustedPaymentAttempt } from '@/lib/payment-attempt';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,6 +12,8 @@ export async function POST(req: NextRequest) {
     const decodedToken = await verifyFirebaseIdToken(idToken);
     const body = await req.json();
     const orderId = typeof body?.orderId === 'string' ? body.orderId.trim() : '';
+    const requestedMerchantOrderId =
+      typeof body?.merchantOrderId === 'string' ? body.merchantOrderId.trim() : '';
     if (!orderId) return NextResponse.json({ error: 'A valid order reference is required.' }, { status: 400 });
 
     const db = getAdminDb();
@@ -22,16 +25,23 @@ export async function POST(req: NextRequest) {
     if (order.payment?.status === 'Paid') return NextResponse.json({ paid: true });
 
     const credentials = getPhonePeCredentials();
-    const merchantOrderId = order.payment?.phonepeMerchantOrderId;
-    if (!credentials || !merchantOrderId) {
+    const merchantOrderId = requestedMerchantOrderId || order.payment?.phonepeMerchantOrderId;
+    if (!credentials || typeof merchantOrderId !== 'string' || !/^[A-Za-z0-9_-]+$/.test(merchantOrderId)) {
       return NextResponse.json({ error: 'No payment attempt was found for this order.' }, { status: 404 });
     }
+    const attemptSnapshot = await db.collection('phonepePaymentAttempts').doc(merchantOrderId).get();
+    const paymentAttempt = attemptSnapshot.data();
+    if (!isTrustedPaymentAttempt(paymentAttempt, orderId, decodedToken.uid, merchantOrderId)) {
+      return NextResponse.json({ error: 'Payment attempt was not found for this order.' }, { status: 404 });
+    }
+    const expectedAmount = paymentAttempt.amount;
+    const initiatedAt = paymentAttempt.initiatedAt;
 
     const accessToken = await getPhonePeAccessToken(credentials);
     const paymentStatus = await fetchPhonePeOrderStatus(credentials, accessToken, merchantOrderId);
     const completedPayment = paymentStatus.paymentDetails?.find((payment) => payment.state === 'COMPLETED');
     if (paymentStatus.state === 'COMPLETED') {
-      if (paymentStatus.amount !== Math.round(Number(order.payment.amount) * 100)) {
+      if (typeof expectedAmount !== 'number' || paymentStatus.amount !== Math.round(expectedAmount * 100)) {
         console.error('PhonePe amount mismatch for order:', orderId);
         return NextResponse.json({ error: 'Payment amount did not match the order.' }, { status: 409 });
       }
@@ -44,11 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (paymentStatus.state === 'FAILED' || paymentStatus.state === 'EXPIRED') {
-      await orderRef.update({
-        'payment.status': 'Failed',
-        updatedAt: new Date().toISOString(),
-      });
-      await releaseReferralReservation(orderId);
+      await releaseReferralReservation(orderId, merchantOrderId, paymentStatus.state);
       return NextResponse.json({ paid: false, state: paymentStatus.state });
     }
 
@@ -56,7 +62,7 @@ export async function POST(req: NextRequest) {
       paid: false,
       state: paymentStatus.state ?? 'PENDING',
       expireAt: paymentStatus.expireAt,
-      initiatedAt: order.payment?.phonepeInitiatedAt,
+      initiatedAt,
     });
   } catch (error) {
     console.error('PhonePe status verification error:', error);

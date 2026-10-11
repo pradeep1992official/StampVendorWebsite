@@ -45,18 +45,18 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
           <h3 className="text-lg font-black text-white">Rental Agreement Drafting & Stamping</h3>
         </div>
         <div className="text-right">
-          <span className="text-xl sm:text-2xl font-black text-amber-400">₹{breakdown.totalPayable}/-</span>
+          <span className="text-xl sm:text-2xl font-black text-brand-600">₹{breakdown.totalPayable}/-</span>
           <span className="block text-xs text-stone-400">All inclusive with courier</span>
         </div>
       </div>
 
       {/* Interactive package options */}
-      <div className="p-6 bg-amber-50/40 border-b border-amber-100/80">
+      <div className="p-6 bg-brand-50/40 border-b border-brand-100/80">
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-xs font-bold text-stone-900 uppercase tracking-wider">
             Select Your Package Options
           </h4>
-          <span className="text-[11px] text-amber-800 font-semibold bg-amber-100 px-2 py-0.5 rounded-full">
+          <span className="text-[11px] text-brand-800 font-semibold bg-brand-100 px-2 py-0.5 rounded-full">
             Live Pricing
           </span>
         </div>
@@ -124,7 +124,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
         {/* 1. Stamp Duty */}
         <div className="py-3.5 flex items-start justify-between gap-4 first:pt-0">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-amber-50 text-amber-800 rounded-xl shrink-0 mt-0.5">
+            <div className="p-2 bg-brand-50 text-brand-800 rounded-xl shrink-0 mt-0.5">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
@@ -134,7 +134,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
               </p>
             </div>
           </div>
-          <span className="font-bold text-amber-800 text-xs sm:text-sm shrink-0 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/80">
+          <span className="font-bold text-brand-800 text-xs sm:text-sm shrink-0 bg-brand-50 px-2.5 py-1 rounded-lg border border-brand-200/80">
             ₹{stampFaceValue}
           </span>
         </div>
@@ -142,7 +142,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
         {/* 2. Service Fee */}
         <div className="py-3.5 flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-sky-50 text-sky-800 rounded-xl shrink-0 mt-0.5">
+            <div className="p-2 bg-brand-50 text-brand-800 rounded-xl shrink-0 mt-0.5">
               <FileText className="w-5 h-5" />
             </div>
             <div>
@@ -160,7 +160,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
         {/* 3. Courier Charge */}
         <div className="py-3.5 flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <div className="p-2 bg-emerald-50 text-emerald-800 rounded-xl shrink-0 mt-0.5">
+            <div className="p-2 bg-brand-50 text-brand-800 rounded-xl shrink-0 mt-0.5">
               <Truck className="w-5 h-5" />
             </div>
             <div>
@@ -179,7 +179,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
         {includeNotary && (
           <div className="py-3.5 flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
-              <div className="p-2 bg-purple-50 text-purple-800 rounded-xl shrink-0 mt-0.5">
+              <div className="p-2 bg-brand-50 text-brand-800 rounded-xl shrink-0 mt-0.5">
                 <Award className="w-5 h-5" />
               </div>
               <div>
@@ -189,7 +189,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
                 </p>
               </div>
             </div>
-            <span className="font-bold text-purple-800 text-xs sm:text-sm shrink-0 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200">
+            <span className="font-bold text-brand-800 text-xs sm:text-sm shrink-0 bg-brand-50 px-2.5 py-1 rounded-lg border border-brand-200">
               ₹{breakdown.notaryFee}
             </span>
           </div>
@@ -204,7 +204,7 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
             </span>
           </div>
           <div className="text-right">
-            <span className="text-xl sm:text-2xl font-black text-emerald-700">₹{breakdown.totalPayable}/-</span>
+            <span className="text-xl sm:text-2xl font-black text-brand-800">₹{breakdown.totalPayable}/-</span>
           </div>
         </div>
       </div>
@@ -212,15 +212,15 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
       {/* Feature bullets */}
       <div className="bg-stone-50 px-6 py-5 border-t border-stone-200/80 space-y-2.5">
         <div className="flex items-center gap-2 text-xs text-stone-700 font-medium">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <CheckCircle2 className="w-4 h-4 text-brand-600 shrink-0" />
           <span>Tamil Nadu non-judicial stamp paper</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-stone-700 font-medium">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <CheckCircle2 className="w-4 h-4 text-brand-600 shrink-0" />
           <span>1 physical original copy printed on genuine stamp paper</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-stone-700 font-medium">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <CheckCircle2 className="w-4 h-4 text-brand-600 shrink-0" />
           <span>Courier dispatch with tracking ID</span>
         </div>
 
@@ -229,17 +229,17 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
             {onStartOrder ? (
               <button
                 onClick={onStartOrder}
-                className="w-full bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold py-3.5 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider cursor-pointer"
+                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider cursor-pointer"
               >
-                <FileText className="w-4 h-4 text-stone-950" />
+                <FileText className="w-4 h-4 text-white" />
                 <span>Start Your Agreement (₹{breakdown.totalPayable}/-)</span>
               </button>
             ) : (
               <Link
                 href="/order"
-                className="w-full bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold py-3.5 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider text-center"
+                className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider text-center"
               >
-                <FileText className="w-4 h-4 text-stone-950" />
+                <FileText className="w-4 h-4 text-white" />
                 <span>Start Your Agreement (₹{breakdown.totalPayable}/-)</span>
               </Link>
             )}

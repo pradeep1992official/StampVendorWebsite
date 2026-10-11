@@ -6,10 +6,10 @@ import { SupportEmailLink } from '@/components/SupportEmailLink';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | Data Protection & Aadhaar Masking Policy | TN Stamp Paper',
-  description: 'Read our privacy policy. We strictly record only the last 4 digits of Aadhaar, store uploaded proofs securely, and do not share identity documents.',
+  description: 'Read how we protect your submitted agreement details. This service does not accept document uploads.',
   openGraph: {
     title: 'Privacy Policy | Data Protection & Aadhaar Masking Policy | TN Stamp Paper',
-    description: 'Read our privacy policy. We strictly record only the last 4 digits of Aadhaar, store uploaded proofs securely, and do not share identity documents.',
+    description: 'Read how we protect your submitted agreement details. This service does not accept document uploads.',
   },
 };
 
@@ -52,17 +52,17 @@ export default function PrivacyPolicyPage() {
             <li>Owner & Tenant full legal names, father/spouse name, age, permanent address, contact number, and email.</li>
             <li>Last 4 digits of Aadhaar number and optional PAN number for tax accounting records.</li>
             <li>Rental property location, survey number/door number, pincode, monthly rent, security deposit, and tenancy dates.</li>
-            <li>Supporting document uploads: Owner ID proof, Tenant ID proof, and Property Address proof (Electricity EB bill or Property Tax receipt).</li>
+            <li>Document files are not collected; this service does not accept uploads.</li>
           </ul>
         </section>
 
         <section className="space-y-2">
           <h2 className="text-base sm:text-lg font-bold text-stone-900 flex items-center gap-2">
             <EyeOff className="w-4 h-4 text-amber-700" />
-            <span>2. Private & Encrypted Document Storage</span>
+            <span>2. Private Agreement Data</span>
           </h2>
           <p>
-            All uploaded document proofs are stored in isolated private cloud storage. We enforce strict role-based access controls:
+            Agreement drafts and orders are stored with access controls. We do not collect uploaded identity or property documents.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs">
@@ -71,11 +71,11 @@ export default function PrivacyPolicyPage() {
             </div>
             <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs">
               <strong className="text-stone-900 block mb-1">Certified Vendor Only</strong>
-              Authorized stamp vendor staff verify document clarity solely to print correct names.
+              Authorized vendor staff review submitted details to prepare the agreement.
             </div>
           </div>
           <p className="text-stone-600 pt-1">
-            We limit all uploads strictly to <strong>JPG, PNG, and PDF formats with a maximum file size of 5 MB per document</strong>. Executable files, archives, and unauthorized formats are blocked by server-side validators.
+            Enter the required details directly in the order form. No file uploads are required or accepted.
           </p>
         </section>
 
@@ -95,7 +95,7 @@ export default function PrivacyPolicyPage() {
             <span>4. Data Retention & Erasure</span>
           </h2>
           <p>
-            Customer orders and status history are maintained so you can track your courier dispatch. Once the physical agreement is successfully couriered and delivered, customers may request proof document purge from our systems by contacting our vendor desk at{' '}
+            Customer orders and status history are maintained so you can track your courier dispatch. For questions about your stored agreement details or data deletion requests, contact our vendor desk at{' '}
             <SupportEmailLink className="font-mono text-amber-800 font-semibold" />.
           </p>
         </section>

@@ -2,6 +2,8 @@ import { randomBytes } from 'crypto';
 import { type DocumentData, type Firestore } from 'firebase-admin/firestore';
 import { getAdminDb } from '@/lib/firebase-admin';
 import { DEFAULT_REFERRAL_REWARD_AMOUNT } from '@/lib/referral-utils';
+import { isTrustedPaymentAttempt } from '@/lib/payment-attempt';
+import { assertCheckoutLock } from '@/lib/checkout-lock';
 
 export interface ReferralAccount {
   uid: string;
@@ -59,6 +61,7 @@ export async function confirmPaidOrderAndGrantReferral(
   paymentDetails: {
     transactionId?: string;
     merchantOrderId?: string;
+    reservationKey?: string;
     paymentUpdates?: Record<string, unknown>;
   } = {},
 ) {
@@ -87,6 +90,20 @@ export async function confirmPaidOrderAndGrantReferral(
     const order = orderSnapshot.data()!;
     if (order.payment?.status === 'Paid') return { alreadyPaid: true, rewardAmount: 0 };
 
+    let trustedAttempt: DocumentData | undefined;
+    if (paymentDetails.merchantOrderId) {
+      const attemptSnapshot = await transaction.get(
+        db.collection('phonepePaymentAttempts').doc(paymentDetails.merchantOrderId),
+      );
+      if (!isTrustedPaymentAttempt(attemptSnapshot.data(), orderId, order.ownerUid, paymentDetails.merchantOrderId)) {
+        throw new Error('Payment attempt is not owned by this order.');
+      }
+      trustedAttempt = attemptSnapshot.data()!;
+      if (['FAILED', 'EXPIRED'].includes(trustedAttempt.state) || order.payment?.phonepeMerchantOrderId !== paymentDetails.merchantOrderId) {
+        throw new Error('A superseded or released payment requires vendor reconciliation.');
+      }
+    }
+
     const firstPaidSnapshot = await transaction.get(firstPaidOrderRef);
     const referralCode = typeof order.referralCode === 'string' ? order.referralCode : '';
     const referralCodeRef = referralCode
@@ -113,6 +130,17 @@ export async function confirmPaidOrderAndGrantReferral(
       : null;
     const reservationRef = db.collection('referralReservations').doc(orderId);
     const reservationSnapshot = await transaction.get(reservationRef);
+    const expectedCredit = trustedAttempt?.creditApplied ?? paymentDetails.paymentUpdates?.['payment.referralCreditApplied'] ?? 0;
+    const expectedReservationKey = paymentDetails.merchantOrderId ?? paymentDetails.reservationKey;
+    if (Number(expectedCredit) > 0 && (
+      reservationSnapshot.data()?.status !== 'reserved' ||
+      reservationSnapshot.data()?.merchantOrderId !== expectedReservationKey ||
+      reservationSnapshot.data()?.amount !== expectedCredit ||
+      reservationSnapshot.data()?.ownerUid !== order.ownerUid
+    )) throw new Error('Payment credit reservation does not match this attempt.');
+    if (reservationSnapshot.data()?.status === 'reserved' && Number(expectedCredit) === 0) {
+      throw new Error('An unrelated credit reservation cannot be consumed by this payment.');
+    }
 
     const paidOrderUpdate: Record<string, unknown> = {
       'payment.status': 'Paid',
@@ -120,6 +148,11 @@ export async function confirmPaidOrderAndGrantReferral(
       status: 'Under verification',
       updatedAt: now,
       ...paymentDetails.paymentUpdates,
+      ...(trustedAttempt ? {
+        'payment.amount': trustedAttempt.amount,
+        'payment.referralCreditApplied': trustedAttempt.creditApplied,
+        'payment.totalBeforeCredits': trustedAttempt.totalBeforeCredits ?? trustedAttempt.amount + trustedAttempt.creditApplied,
+      } : {}),
     };
     if (paymentDetails.transactionId) {
       paidOrderUpdate['payment.phonepeTransactionId'] = paymentDetails.transactionId;
@@ -128,6 +161,7 @@ export async function confirmPaidOrderAndGrantReferral(
       paidOrderUpdate['payment.phonepeMerchantOrderId'] = paymentDetails.merchantOrderId;
     }
     transaction.update(orderRef, paidOrderUpdate);
+    if (paymentDetails.merchantOrderId) transaction.update(db.collection('phonepePaymentAttempts').doc(paymentDetails.merchantOrderId), { state: 'COMPLETED', updatedAt: now });
 
     let rewardAmount = 0;
     if (!firstPaidSnapshot.exists) {
@@ -201,6 +235,7 @@ export async function reserveReferralCreditForOrder(
   orderId: string,
   uid: string,
   amount: number,
+  options?: { merchantOrderId: string; lockToken: string; totalBeforeCredits: number; paymentAttempt?: DocumentData },
 ) {
   const db = getAdminDb();
   const orderRef = db.collection('orders').doc(orderId);
@@ -214,19 +249,20 @@ export async function reserveReferralCreditForOrder(
       transaction.get(accountRef),
       transaction.get(reservationRef),
     ]);
+    if (options) await assertCheckoutLock(db, transaction, orderId, options.lockToken);
+    if (!Number.isSafeInteger(amount) || amount < 0) throw new Error('Invalid referral credit amount.');
     if (!orderSnapshot.exists) throw new Error('Order not found.');
     if (orderSnapshot.data()?.ownerUid !== uid) throw new Error('Order access denied.');
     if (orderSnapshot.data()?.payment?.status === 'Paid') throw new Error('This order is already paid.');
 
     if (reservationSnapshot.exists && reservationSnapshot.data()?.status === 'reserved') {
       const existingAmount = Number(reservationSnapshot.data()?.amount);
-      if (existingAmount !== amount) {
+      if (existingAmount !== amount || (options && reservationSnapshot.data()?.merchantOrderId !== options.merchantOrderId)) {
         throw new Error('A different referral credit amount is already reserved for this order.');
       }
       return { balance: Number(accountSnapshot.data()?.balance || 0), reserved: existingAmount };
     }
-    if (amount === 0) return { balance: Number(accountSnapshot.data()?.balance || 0), reserved: 0 };
-    if (!accountSnapshot.exists) throw new Error('No referral credit balance was found for this account.');
+    if (amount > 0 && !accountSnapshot.exists) throw new Error('No referral credit balance was found for this account.');
     if (reservationSnapshot.exists && reservationSnapshot.data()?.status === 'consumed') {
       throw new Error('Referral credit has already been used for this order.');
     }
@@ -236,6 +272,27 @@ export async function reserveReferralCreditForOrder(
       throw new Error('Your available referral credit changed. Refresh the balance and try again.');
     }
 
+    if (options?.paymentAttempt) {
+      transaction.create(db.collection('phonepePaymentAttempts').doc(options.merchantOrderId), options.paymentAttempt);
+      transaction.update(orderRef, {
+        'payment.gateway': 'PhonePe', 'payment.status': 'Pending',
+        'payment.phonepeMerchantOrderId': options.merchantOrderId,
+        'payment.amount': options.paymentAttempt.amount,
+        'payment.referralCreditApplied': amount,
+        'payment.totalBeforeCredits': options.paymentAttempt.totalBeforeCredits,
+        'payment.phonepeInitiatedAt': options.paymentAttempt.initiatedAt,
+        'payment.phonepeReturnUrl': options.paymentAttempt.returnUrl,
+        'payment.phonepeRedirectUrl': '', updatedAt: now,
+      });
+    } else if (options && amount > 0) {
+      transaction.update(orderRef, {
+        'payment.gateway': 'ReferralCredit', 'payment.status': 'Pending',
+        'payment.reservationKey': options.merchantOrderId,
+        'payment.amount': 0, 'payment.referralCreditApplied': amount,
+        'payment.totalBeforeCredits': options.totalBeforeCredits, updatedAt: now,
+      });
+    }
+    if (amount === 0) return { balance: currentBalance, reserved: 0 };
     transaction.update(accountRef, { balance: currentBalance - amount, updatedAt: now });
     const attempt = Number(reservationSnapshot.data()?.attempt || 0) + 1;
     transaction.set(reservationRef, {
@@ -243,6 +300,7 @@ export async function reserveReferralCreditForOrder(
       orderId,
       amount,
       attempt,
+      ...(options ? { merchantOrderId: options.merchantOrderId } : {}),
       status: 'reserved',
       createdAt: now,
       updatedAt: now,
@@ -258,7 +316,7 @@ export async function reserveReferralCreditForOrder(
   });
 }
 
-export async function releaseReferralReservation(orderId: string) {
+export async function releaseReferralReservation(orderId: string, merchantOrderId?: string, terminalState: 'FAILED' | 'EXPIRED' = 'FAILED') {
   const db = getAdminDb();
   const orderRef = db.collection('orders').doc(orderId);
   const reservationRef = db.collection('referralReservations').doc(orderId);
@@ -267,27 +325,40 @@ export async function releaseReferralReservation(orderId: string) {
   return db.runTransaction(async (transaction) => {
     const orderSnapshot = await transaction.get(orderRef);
     const reservationSnapshot = await transaction.get(reservationRef);
-    if (
-      !orderSnapshot.exists ||
-      !reservationSnapshot.exists ||
-      reservationSnapshot.data()?.status !== 'reserved'
-    ) {
-      return false;
-    }
-
+    if (!orderSnapshot.exists) return false;
     const order = orderSnapshot.data()!;
     if (order.payment?.status === 'Paid') return false;
+    const attemptRef = merchantOrderId ? db.collection('phonepePaymentAttempts').doc(merchantOrderId) : null;
+    const attemptSnapshot = attemptRef ? await transaction.get(attemptRef) : null;
+    if (merchantOrderId && (
+      !isTrustedPaymentAttempt(attemptSnapshot?.data(), orderId, order.ownerUid, merchantOrderId) ||
+      order.payment?.phonepeMerchantOrderId !== merchantOrderId ||
+      attemptSnapshot?.data()?.state === 'COMPLETED'
+    )) return false;
+    const reservation = reservationSnapshot.data();
+    const shouldRelease = reservation?.status === 'reserved';
+    if (shouldRelease && merchantOrderId && reservation?.merchantOrderId !== merchantOrderId) {
+      throw new Error('Cannot release credits reserved for a different payment attempt.');
+    }
     const accountRef = db.collection('referralAccounts').doc(order.ownerUid);
-    const accountSnapshot = await transaction.get(accountRef);
-    if (!accountSnapshot.exists) throw new Error('Referral account is missing for a reserved credit.');
+    const accountSnapshot = shouldRelease ? await transaction.get(accountRef) : null;
+    if (shouldRelease && !accountSnapshot?.exists) throw new Error('Referral account is missing for a reserved credit.');
+
+    if (attemptRef) {
+      transaction.update(attemptRef, { state: terminalState, updatedAt: now });
+      transaction.update(orderRef, { 'payment.status': 'Failed', updatedAt: now });
+    }
+    if (!shouldRelease) return false;
 
     const amount = Number(reservationSnapshot.data()?.amount);
+    const balance = Number(accountSnapshot?.data()?.balance || 0);
+    if (!Number.isSafeInteger(amount) || amount <= 0 || !Number.isSafeInteger(balance) || balance < 0 || !Number.isSafeInteger(balance + amount)) throw new Error('Invalid referral balance.');
     transaction.update(accountRef, {
-      balance: Number(accountSnapshot.data()?.balance || 0) + amount,
+      balance: balance + amount,
       updatedAt: now,
     });
     transaction.update(reservationRef, { status: 'released', updatedAt: now });
-    transaction.create(db.collection('referralLedger').doc(`release_${orderId}`), {
+    transaction.create(db.collection('referralLedger').doc(`release_${orderId}_${reservation?.attempt || 1}`), {
       ownerUid: order.ownerUid,
       type: 'release',
       amount,

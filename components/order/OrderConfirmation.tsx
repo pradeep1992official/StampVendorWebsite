@@ -150,9 +150,9 @@ export const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ order, onS
           <h3 className="font-bold text-stone-900 text-sm">What Happens Next?</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/70 space-y-1">
-              <span className="font-bold text-amber-900 block">1. Document Check</span>
+              <span className="font-bold text-amber-900 block">1. Agreement Details Check</span>
               <p className="text-stone-600 leading-relaxed">
-                Our drafting team checks landlord & tenant proof documents against Tamil Nadu stamp requirements.
+                Our drafting team reviews the submitted landlord, tenant, property and agreement details.
               </p>
             </div>
             <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/70 space-y-1">
@@ -175,7 +175,7 @@ export const OrderConfirmation: React.FC<OrderConfirmationProps> = ({ order, onS
           <button
             type="button"
             onClick={() => setShowAgreementPreview(true)}
-            className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 px-6 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
+            className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-stone-900 font-semibold py-3 px-6 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
           >
             <Eye className="w-4 h-4" />
             <span>View Agreement Draft</span>

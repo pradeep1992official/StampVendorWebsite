@@ -7,8 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "node --experimental-strip-types --test tests/validation.test.ts tests/fee-calculation.test.ts tests/security-rules-validation.test.ts tests/agreement-document.test.ts tests/pincode-utils.test.ts tests/referral.test.ts",
-    "clean": "next clean"
+    "test": "node --experimental-strip-types --test tests/validation.test.ts tests/fee-calculation.test.ts tests/security-rules-validation.test.ts tests/agreement-document.test.ts tests/pincode-utils.test.ts tests/referral.test.ts tests/draft-sanitization.test.ts tests/payment-attempt.test.ts tests/high-severity.test.ts tests/pricing-validation.test.ts tests/clean.test.mjs",
+    "clean": "node scripts/clean.mjs",
+    "test:rules": "firebase emulators:exec --config firebase.test.json --project demo-stampsure-tests --only firestore,storage \"node --test tests/firebase-rules.emulator.test.mjs\""
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -27,6 +28,7 @@
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@tailwindcss/postcss": "4.1.11",
     "@tailwindcss/typography": "^0.5.19",
     "@types/node": "^20",

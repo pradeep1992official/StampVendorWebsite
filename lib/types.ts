@@ -60,9 +60,15 @@ export interface OrderPayment {
   amount?: number;
   totalBeforeCredits?: number;
   referralCreditApplied?: number;
+  reservationKey?: string;
   gateway?: 'PhonePe' | 'ReferralCredit' | 'Razorpay';
   phonepeMerchantOrderId?: string;
   phonepeMerchantOrderIds?: string[];
+  phonepePaymentAttempts?: Array<{
+    merchantOrderId: string;
+    amount: number;
+    initiatedAt: number;
+  }>;
   phonepeInitiatedAt?: number;
   phonepeReturnUrl?: string;
   phonepeTransactionId?: string;

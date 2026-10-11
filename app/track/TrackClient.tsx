@@ -112,7 +112,7 @@ export function TrackClient() {
 
   const timelineSteps: { key: OrderStatus; label: string; desc: string }[] = [
     { key: 'Submitted', label: '1. Application Submitted', desc: 'Received at certified vendor desk.' },
-    { key: 'Under verification', label: '2. Under Document Check', desc: 'Vendor verifying ID and property proofs.' },
+    { key: 'Under verification', label: '2. Under Verification', desc: 'Vendor reviewing the submitted agreement details.' },
     { key: 'Drafting', label: '3. Stamping & Drafting', desc: 'Printed on non-judicial stamp paper.' },
     { key: 'Dispatched', label: '4. Dispatched via Courier', desc: 'Handed over for doorstep delivery.' },
     { key: 'Delivered', label: '5. Delivered', desc: 'Received and signed by customer.' },
@@ -243,7 +243,7 @@ export function TrackClient() {
                 <span>Document Clarification Required</span>
               </div>
               <p className="text-rose-800 leading-relaxed">
-                {orderData.correctionMessage || 'Please log in to your account to upload corrected proof documents.'}
+                {orderData.correctionMessage || 'Please sign in to your account to review the requested corrections.'}
               </p>
             </div>
           )}

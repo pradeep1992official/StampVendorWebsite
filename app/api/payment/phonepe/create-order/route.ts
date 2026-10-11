@@ -1,252 +1,156 @@
+import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { FieldValue } from 'firebase-admin/firestore';
-import { calculateOrderPrice, DEFAULT_PRICING, PricingConfig } from '@/src/config/pricing';
+import { calculateOrderPrice, resolvePricingConfig } from '@/src/config/pricing';
 import { getAdminDb, verifyFirebaseIdToken } from '@/lib/firebase-admin';
-import { getPhonePeAccessToken, getPhonePeApiBase, getPhonePeCredentials } from '@/lib/phonepe';
-import {
-  confirmPaidOrderAndGrantReferral,
-  releaseReferralReservation,
-  reserveReferralCreditForOrder,
-} from '@/lib/referral-admin';
-import { calculateReferralCredit } from '@/lib/referral-utils';
-
-function getApplicationUrl(requestOrigin: string): URL | null {
-  const configuredUrl = process.env.APP_URL?.trim();
-  let appUrl: URL;
-
-  try {
-    appUrl = new URL(configuredUrl || requestOrigin);
-  } catch {
-    return null;
-  }
-
-  if (
-    (appUrl.protocol !== 'http:' && appUrl.protocol !== 'https:') ||
-    appUrl.username ||
-    appUrl.password
-  ) {
-    return null;
-  }
-
-  if (appUrl.hostname === '0.0.0.0' || appUrl.hostname === '[::]' || appUrl.hostname === '::') {
-    if (process.env.NODE_ENV === 'production') return null;
-    appUrl.hostname = 'localhost';
-  }
-
-  return appUrl;
-}
+import { fetchPhonePeOrderStatus, getPhonePeAccessToken, getPhonePeApiBase, getPhonePeCredentials } from '@/lib/phonepe';
+import { confirmPaidOrderAndGrantReferral, releaseReferralReservation, reserveReferralCreditForOrder } from '@/lib/referral-admin';
+import { isTrustedPaymentAttempt } from '@/lib/payment-attempt';
+import { acquireCheckoutLock, assertCheckoutLock, releaseCheckoutLock } from '@/lib/checkout-lock';
+import { checkoutDetailsChanged, selectCheckoutDetails } from '@/lib/order-checkout-details';
 
 export async function POST(req: NextRequest) {
+  let lock: { orderId: string; token: string } | undefined;
   try {
     const idToken = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
     if (!idToken) return NextResponse.json({ error: 'Sign in is required to pay.' }, { status: 401 });
-
-    const appUrl = getApplicationUrl(req.nextUrl.origin);
-    if (!appUrl) {
-      return NextResponse.json({
-        error: 'The payment return URL is not configured. Set APP_URL to the public application URL.',
-      }, { status: 503 });
-    }
-
-    const decodedToken = await verifyFirebaseIdToken(idToken);
+    const decoded = await verifyFirebaseIdToken(idToken);
     const body = await req.json();
     const orderId = typeof body?.orderId === 'string' ? body.orderId.trim() : '';
-    if (!orderId) return NextResponse.json({ error: 'A valid order reference is required.' }, { status: 400 });
-
+    if (!/^[A-Za-z0-9_-]+$/.test(orderId)) return NextResponse.json({ error: 'A valid order reference is required.' }, { status: 400 });
+    let appUrl: URL;
+    try {
+      appUrl = new URL((process.env.NODE_ENV === 'production' ? process.env.APP_URL?.trim() : undefined) || req.nextUrl.origin);
+      if (!['http:', 'https:'].includes(appUrl.protocol) || appUrl.username || appUrl.password) throw new Error();
+      if (['0.0.0.0', '[::]', '::'].includes(appUrl.hostname)) {
+        if (process.env.NODE_ENV === 'production') throw new Error();
+        appUrl.hostname = 'localhost';
+      }
+    } catch {
+      return NextResponse.json({ error: 'Configure APP_URL with the public application URL.' }, { status: 503 });
+    }
     const db = getAdminDb();
     const orderRef = db.collection('orders').doc(orderId);
-    const orderSnap = await orderRef.get();
-    if (!orderSnap.exists) return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
-
-    const order = orderSnap.data()!;
-    if (order.ownerUid !== decodedToken.uid) return NextResponse.json({ error: 'Order access denied.' }, { status: 403 });
+    const snapshot = await orderRef.get();
+    if (!snapshot.exists) return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
+    let order = snapshot.data()!;
+    if (order.ownerUid !== decoded.uid) return NextResponse.json({ error: 'Order access denied.' }, { status: 403 });
     if (order.payment?.status === 'Paid') return NextResponse.json({ error: 'This order is already paid.' }, { status: 409 });
-
-    const existingReservation = await db.collection('referralReservations').doc(orderId).get();
-    const rawRequestedCredits =
-      body?.creditAmount ??
-      order.payment?.referralCreditApplied ??
-      (existingReservation.data()?.status === 'reserved' ? existingReservation.data()?.amount : 0);
-    if (
-      typeof rawRequestedCredits !== 'number' ||
-      !Number.isSafeInteger(rawRequestedCredits) ||
-      rawRequestedCredits < 0
-    ) {
-      return NextResponse.json({ error: 'Referral credit must be a non-negative whole number.' }, { status: 400 });
+    try { lock = { orderId, token: await acquireCheckoutLock(db, orderId, decoded.uid) }; }
+    catch (error) { return NextResponse.json({ error: (error as Error).message }, { status: 409 }); }
+    // Read again under the distributed lock, rather than using the pre-lock snapshot.
+    order = (await orderRef.get()).data()!;
+    if (order.payment?.gateway === 'ReferralCredit' && order.payment?.reservationKey && order.payment?.status === 'Pending') {
+      await confirmPaidOrderAndGrantReferral(orderId, { reservationKey: order.payment.reservationKey, paymentUpdates: {
+        'payment.referralCreditApplied': order.payment.referralCreditApplied,
+        'payment.amount': 0,
+      } });
+      return NextResponse.json({ available: true, paid: true, order: (await orderRef.get()).data() });
     }
-
-    const previousAttemptAge = Date.now() - Number(order.payment?.phonepeInitiatedAt);
-    let previousReturnUrlMatches = false;
-    if (typeof order.payment?.phonepeReturnUrl === 'string') {
-      try {
-        const previousReturnUrl = new URL(order.payment.phonepeReturnUrl);
-        previousReturnUrlMatches =
-          previousReturnUrl.origin === appUrl.origin &&
-          previousReturnUrl.pathname === '/payment/phonepe/return';
-      } catch {
-        previousReturnUrlMatches = false;
+    const previousMerchantOrderId = order.payment?.phonepeMerchantOrderId;
+    const previousSnap = typeof previousMerchantOrderId === 'string' && /^[A-Za-z0-9_-]+$/.test(previousMerchantOrderId)
+      ? await db.collection('phonepePaymentAttempts').doc(previousMerchantOrderId).get() : null;
+    const previousData = previousSnap?.data();
+    const previousAttempt = isTrustedPaymentAttempt(previousData, orderId, decoded.uid, previousMerchantOrderId) ? previousData : null;
+    if (previousMerchantOrderId && !previousAttempt) {
+      return NextResponse.json({ error: 'This older payment attempt needs vendor verification before another checkout can start. Please contact support.' }, { status: 409 });
+    }
+    const requested = body?.creditAmount ?? previousAttempt?.creditApplied ?? 0;
+    if (!Number.isSafeInteger(requested) || requested < 0) return NextResponse.json({ error: 'Referral credit must be a non-negative whole number.' }, { status: 400 });
+    let details: Record<string, unknown> = {};
+    if (body?.orderDetails !== undefined) {
+      if (!body.orderDetails || typeof body.orderDetails !== 'object' || Array.isArray(body.orderDetails)) return NextResponse.json({ error: 'Invalid order details.' }, { status: 400 });
+      details = selectCheckoutDetails(body.orderDetails);
+      for (const key of ['ownerDetails', 'tenantDetails', 'propertyDetails', 'agreementTerms', 'proofUploads']) {
+        if (!details[key] || typeof details[key] !== 'object' || Array.isArray(details[key])) return NextResponse.json({ error: 'Complete order details are required.' }, { status: 400 });
       }
     }
-    if (
-      order.payment?.status === 'Pending' &&
-      typeof order.payment?.phonepeMerchantOrderId === 'string' &&
-      typeof order.payment?.phonepeRedirectUrl === 'string' &&
-      Number(order.payment?.referralCreditApplied || 0) === rawRequestedCredits &&
-      previousReturnUrlMatches &&
-      Number.isFinite(previousAttemptAge) &&
-      previousAttemptAge >= 0 &&
-      previousAttemptAge < 20 * 60 * 1000
-    ) {
-      return NextResponse.json({
-        available: true,
-        redirectUrl: order.payment.phonepeRedirectUrl,
-        merchantOrderId: order.payment.phonepeMerchantOrderId,
-        initiatedAt: order.payment.phonepeInitiatedAt,
-        creditApplied: rawRequestedCredits,
-        amountDue: order.payment.amount,
-      });
-    }
-
-    const pricingSnap = await db.collection('settings').doc('pricing').get();
-    const savedPricing = pricingSnap.data() ?? {};
-    const pricing: PricingConfig = {
-      stamp100Chennai: typeof savedPricing.stamp100Chennai === 'number' ? savedPricing.stamp100Chennai : DEFAULT_PRICING.stamp100Chennai,
-      stamp100TamilNadu: typeof savedPricing.stamp100TamilNadu === 'number' ? savedPricing.stamp100TamilNadu : DEFAULT_PRICING.stamp100TamilNadu,
-      stamp200Chennai: typeof savedPricing.stamp200Chennai === 'number' ? savedPricing.stamp200Chennai : DEFAULT_PRICING.stamp200Chennai,
-      stamp200TamilNadu: typeof savedPricing.stamp200TamilNadu === 'number' ? savedPricing.stamp200TamilNadu : DEFAULT_PRICING.stamp200TamilNadu,
-      notaryExtraFee: typeof savedPricing.notaryExtraFee === 'number' ? savedPricing.notaryExtraFee : DEFAULT_PRICING.notaryExtraFee,
-    };
-    const terms = order.agreementTerms ?? {};
-    const price = calculateOrderPrice(
-      pricing,
-      terms.stampPaperDenomination === 200 ? 200 : 100,
-      terms.deliveryLocation === 'Within Tamil Nadu' ? 'Within Tamil Nadu' : 'Within Chennai',
-      Boolean(terms.includeNotary),
-    );
-    const walletSnapshot = rawRequestedCredits > 0
-      ? await db.collection('referralAccounts').doc(decodedToken.uid).get()
-      : null;
-    const balance = Number(walletSnapshot?.data()?.balance || 0);
-    const creditApplied = calculateReferralCredit(rawRequestedCredits, balance, price.totalPayable);
-    if (creditApplied < 0 || creditApplied !== rawRequestedCredits) {
-      return NextResponse.json({
-        error: rawRequestedCredits > price.totalPayable
-          ? 'Referral credit cannot exceed this order’s checkout total.'
-          : 'Your available referral credit changed. Refresh the balance and try again.',
-      }, { status: 409 });
-    }
-
-    try {
-      await reserveReferralCreditForOrder(orderId, decodedToken.uid, creditApplied);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Could not reserve referral credit.';
-      return NextResponse.json({ error: message }, { status: 409 });
-    }
-
-    const amountDue = price.totalPayable - creditApplied;
-    if (amountDue === 0) {
-      await confirmPaidOrderAndGrantReferral(orderId, {
-        paymentUpdates: {
-          'payment.gateway': 'ReferralCredit',
-          'payment.amount': 0,
-          'payment.totalBeforeCredits': price.totalPayable,
-          'payment.referralCreditApplied': creditApplied,
-        },
-      });
-      const paidOrder = await orderRef.get();
-      return NextResponse.json({
-        available: true,
-        paid: true,
-        creditApplied,
-        amountDue: 0,
-        order: paidOrder.data(),
-      });
-    }
-
     const credentials = getPhonePeCredentials();
-    if (!credentials) {
-      await releaseReferralReservation(orderId);
-      return NextResponse.json({
-        available: false,
-        error: 'Online payment is not configured yet. Your order is saved; please contact the vendor desk or retry after setup.',
-      }, { status: 503 });
+    if (previousAttempt && !['FAILED', 'EXPIRED'].includes(String(previousData?.state))) {
+      if (!credentials) return NextResponse.json({ error: 'Payment verification is unavailable. Please retry later.' }, { status: 503 });
+      // Never replace a payable attempt merely because the local timer elapsed.
+      const accessToken = await getPhonePeAccessToken(credentials);
+      const status = await fetchPhonePeOrderStatus(credentials, accessToken, previousMerchantOrderId);
+      if (status.state === 'COMPLETED') {
+        if (status.amount !== Math.round(previousAttempt.amount * 100)) throw new Error('Payment amount mismatch.');
+        await confirmPaidOrderAndGrantReferral(orderId, { merchantOrderId: previousMerchantOrderId, transactionId: status.paymentDetails?.find((p) => p.state === 'COMPLETED')?.transactionId });
+        return NextResponse.json({ available: true, paid: true, order: (await orderRef.get()).data() });
+      }
+      if (status.state === 'FAILED' || status.state === 'EXPIRED') {
+        await releaseReferralReservation(orderId, previousMerchantOrderId, status.state);
+      } else {
+        if (checkoutDetailsChanged(order, details) || requested !== previousAttempt.creditApplied) {
+          return NextResponse.json({ error: 'The existing checkout is still pending. Finish it or wait for confirmed expiry before changing the order or credits.' }, { status: 409 });
+        }
+        if (!previousAttempt.redirectUrl) return NextResponse.json({ error: 'Checkout is being verified. Please retry shortly; another charge has not been started.' }, { status: 409 });
+        return NextResponse.json({ available: true, redirectUrl: previousAttempt.redirectUrl, merchantOrderId: previousMerchantOrderId, initiatedAt: previousAttempt.initiatedAt, creditApplied: previousAttempt.creditApplied, amountDue: previousAttempt.amount });
+      }
     }
-
-    const amount = Math.round(amountDue * 100);
-    const merchantOrderId = `TN${Date.now()}${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    // Save the exact reviewed details before calculating the next checkout amount.
+    if (Object.keys(details).length) {
+      await db.runTransaction(async (tx) => {
+        const current = await tx.get(orderRef);
+        await assertCheckoutLock(db, tx, orderId, lock!.token);
+        if (current.data()?.payment?.status === 'Paid') throw new Error('This order is already paid.');
+        tx.update(orderRef, { ...details, updatedAt: new Date().toISOString() });
+      });
+      order = { ...order, ...details };
+    }
+    const pricingData = (await db.collection('settings').doc('pricing').get()).data() ?? {};
+    let pricing;
+    try { pricing = resolvePricingConfig(pricingData); }
+    catch { return NextResponse.json({ error: 'The pricing configuration is invalid. Contact support.' }, { status: 503 }); }
+    const terms = order.agreementTerms ?? {};
+    const price = calculateOrderPrice(pricing, terms.stampPaperDenomination === 200 ? 200 : 100, terms.deliveryLocation === 'Within Tamil Nadu' ? 'Within Tamil Nadu' : 'Within Chennai', Boolean(terms.includeNotary));
+    if (!Number.isSafeInteger(price.totalPayable) || price.totalPayable <= 0) return NextResponse.json({ error: 'The pricing configuration is invalid. Contact support.' }, { status: 503 });
+    if (requested > price.totalPayable) return NextResponse.json({ error: 'Referral credit cannot exceed the order total.' }, { status: 409 });
+    const amountDue = price.totalPayable - requested;
+    if (amountDue > 0 && !credentials) return NextResponse.json({ available: false, error: 'Online payment is not configured. Your order is saved.' }, { status: 503 });
+    const merchantOrderId = `TN${randomUUID().replace(/-/g, '')}`;
     const initiatedAt = Date.now();
-    const redirectUrl = new URL('/payment/phonepe/return', appUrl.origin);
-    redirectUrl.searchParams.set('orderId', orderId);
-    redirectUrl.searchParams.set('paymentStartedAt', String(initiatedAt));
-
-    let paymentResponse: Response;
+    const returnUrl = new URL('/payment/phonepe/return', appUrl.origin);
+    returnUrl.searchParams.set('orderId', orderId);
+    returnUrl.searchParams.set('paymentStartedAt', String(initiatedAt));
+    returnUrl.searchParams.set('merchantOrderId', merchantOrderId);
+    // Reserve credit and persist the gateway association BEFORE the outbound request.
+    // A timeout/crash leaves the same attempt recoverable, never a second payable ID.
     try {
-    const accessToken = await getPhonePeAccessToken(credentials);
-    paymentResponse = await fetch(`${getPhonePeApiBase(credentials.production)}/checkout/v2/pay`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `O-Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        merchantOrderId,
-        amount,
-        expireAfter: 1200,
-        metaInfo: { udf1: orderId },
-        paymentFlow: {
-          type: 'PG_CHECKOUT',
-          merchantUrls: { redirectUrl: redirectUrl.toString() },
-        },
-      }),
+      await reserveReferralCreditForOrder(orderId, decoded.uid, requested, {
+        merchantOrderId, lockToken: lock.token, totalBeforeCredits: price.totalPayable,
+        paymentAttempt: amountDue > 0 ? { orderId, ownerUid: decoded.uid, merchantOrderId, amount: amountDue, creditApplied: requested, initiatedAt, redirectUrl: '', returnUrl: returnUrl.toString(), state: 'INITIALIZING', totalBeforeCredits: price.totalPayable } : undefined,
+      });
+    } catch (error) { return NextResponse.json({ error: (error as Error).message }, { status: 409 }); }
+    if (amountDue === 0) {
+      await confirmPaidOrderAndGrantReferral(orderId, { reservationKey: merchantOrderId, paymentUpdates: { 'payment.gateway': 'ReferralCredit', 'payment.amount': 0, 'payment.totalBeforeCredits': price.totalPayable, 'payment.referralCreditApplied': requested } });
+      return NextResponse.json({ available: true, paid: true, order: (await orderRef.get()).data(), creditApplied: requested, amountDue: 0 });
+    }
+    const accessToken = await getPhonePeAccessToken(credentials!);
+    const response = await fetch(`${getPhonePeApiBase(credentials!.production)}/checkout/v2/pay`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `O-Bearer ${accessToken}` },
+      body: JSON.stringify({ merchantOrderId, amount: Math.round(amountDue * 100), expireAfter: 1200, metaInfo: { udf1: orderId }, paymentFlow: { type: 'PG_CHECKOUT', merchantUrls: { redirectUrl: returnUrl.toString() } } }),
       signal: AbortSignal.timeout(15_000),
     });
-    } catch (error) {
-      await releaseReferralReservation(orderId);
-      throw error;
-    }
-
-    let paymentData: Record<string, unknown>;
-    try {
-      paymentData = await paymentResponse.json();
-    } catch (error) {
-      await releaseReferralReservation(orderId);
-      throw error;
-    }
-    const checkoutUrl = typeof paymentData.redirectUrl === 'string'
-      ? paymentData.redirectUrl
-      : typeof paymentData.redirect_url === 'string'
-        ? paymentData.redirect_url
-        : '';
-    if (!paymentResponse.ok || !checkoutUrl) {
-      await releaseReferralReservation(orderId);
-      console.error('PhonePe checkout creation failed:', paymentData.code ?? paymentResponse.status);
-      return NextResponse.json({ error: 'Secure checkout could not start. Please retry.' }, { status: 502 });
-    }
-
-    await orderRef.update({
-      'payment.gateway': 'PhonePe',
-      'payment.status': 'Pending',
-      'payment.amount': amountDue,
-      'payment.totalBeforeCredits': price.totalPayable,
-      'payment.referralCreditApplied': creditApplied,
-      'payment.phonepeMerchantOrderId': merchantOrderId,
-      'payment.phonepeMerchantOrderIds': FieldValue.arrayUnion(merchantOrderId),
-      'payment.phonepeRedirectUrl': checkoutUrl,
-      'payment.phonepeInitiatedAt': initiatedAt,
-      'payment.phonepeReturnUrl': redirectUrl.toString(),
-      updatedAt: new Date().toISOString(),
+    // Even an error response can be ambiguous: retain the attempt and verify its status.
+    const data = await response.json();
+    const checkoutUrl = typeof data.redirectUrl === 'string' ? data.redirectUrl : data.redirect_url;
+    if (!response.ok || typeof checkoutUrl !== 'string' || !checkoutUrl) return NextResponse.json({ error: 'Checkout needs status verification. Retry shortly.' }, { status: 502 });
+    await db.runTransaction(async (tx) => {
+      const current = await tx.get(orderRef);
+      const attemptRef = db.collection('phonepePaymentAttempts').doc(merchantOrderId);
+      const currentAttempt = await tx.get(attemptRef);
+      await assertCheckoutLock(db, tx, orderId, lock!.token);
+      // Webhooks may settle the attempt before the checkout response arrives.
+      if (['COMPLETED', 'FAILED', 'EXPIRED'].includes(currentAttempt.data()?.state)) return;
+      tx.update(attemptRef, { redirectUrl: checkoutUrl, state: 'PENDING' });
+      if (current.data()?.payment?.status !== 'Paid' && current.data()?.payment?.phonepeMerchantOrderId === merchantOrderId) tx.update(orderRef, { 'payment.phonepeRedirectUrl': checkoutUrl });
     });
-
-    return NextResponse.json({
-      available: true,
-      redirectUrl: checkoutUrl,
-      merchantOrderId,
-      initiatedAt,
-      creditApplied,
-      amountDue,
-    });
+    const latest = (await orderRef.get()).data()!;
+    if (latest.payment?.status === 'Paid') return NextResponse.json({ available: true, paid: true, order: latest });
+    if (latest.payment?.status === 'Failed') return NextResponse.json({ error: 'Checkout failed. Please retry.' }, { status: 409 });
+    return NextResponse.json({ available: true, redirectUrl: checkoutUrl, merchantOrderId, initiatedAt, creditApplied: requested, amountDue });
   } catch (error) {
     console.error('PhonePe checkout initialization error:', error);
-    return NextResponse.json({ error: 'Unable to initialize secure checkout.' }, { status: 500 });
+    return NextResponse.json({ error: 'Unable to initialize checkout. Retry to verify the existing attempt.' }, { status: 500 });
+  } finally {
+    if (lock) await releaseCheckoutLock(getAdminDb(), lock.orderId, lock.token).catch((error) => console.error('Checkout lock release failed:', error));
   }
 }

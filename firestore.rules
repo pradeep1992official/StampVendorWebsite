@@ -94,12 +94,15 @@ service cloud.firestore {
       // Create conditions:
       // 1. Authenticated user matching ownerUid
       // 2. Initial status must be 'Submitted'
-      // 3. Initial payment.status must be 'Pending' (server sets 'Paid' after Razorpay webhook)
+      // 3. Customers may supply only Pending; all gateway metadata is server-managed.
       // 4. Disallow courier and correctionMessage on initial creation
       // 5. Restrict allowed payload keys using hasOnly()
       allow create: if isSignedIn()
         && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.orderId == orderId
         && request.resource.data.status == 'Submitted'
+        && request.resource.data.payment is map
+        && request.resource.data.payment.keys().hasOnly(['status'])
         && request.resource.data.payment.status == 'Pending'
         && !('courier' in request.resource.data)
         && !('correctionMessage' in request.resource.data)
@@ -133,15 +136,33 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Gateway associations are created and read only by the server Admin SDK.
+    match /phonepePaymentAttempts/{attemptId} {
+      allow read, write: if false;
+    }
+
     // Administrative activity audit logs: admin only
     match /adminLogs/{logId} {
       allow read, write: if isAdmin();
     }
 
     // System & Pricing Settings (accessible to all for checkout, updatable by admin only)
+    function isValidPrice(amount, minimum) {
+      return amount is int && amount >= minimum && amount <= 45035996273704;
+    }
+
+    function isValidPricing(data) {
+      return isValidPrice(data.stamp100Chennai, 100)
+        && isValidPrice(data.stamp100TamilNadu, 100)
+        && isValidPrice(data.stamp200Chennai, 200)
+        && isValidPrice(data.stamp200TamilNadu, 200)
+        && isValidPrice(data.notaryExtraFee, 0);
+    }
+
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin()
+        && (settingId != 'pricing' || isValidPricing(request.resource.data));
     }
   }
 }

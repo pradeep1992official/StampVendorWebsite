@@ -527,7 +527,7 @@ export function OrderIntakeWizard() {
 
   // Final Order Submission
   const handleSubmitOrder = async (submittedReferralCode: string, creditAmount: number) => {
-    if (!user) return;
+    if (!user || submittingOrder) return;
     setSubmissionError(null);
 
     // Validate all sections before creating order
@@ -593,7 +593,16 @@ export function OrderIntakeWizard() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ orderId, creditAmount }),
+        body: JSON.stringify({ orderId, creditAmount, orderDetails: {
+          customerEmail: user.email || ownerData.email || '',
+          customerPhone: ownerData.phone || '',
+          ownerDetails: ownerData,
+          tenantDetails: tenantData,
+          propertyDetails: propertyData,
+          agreementTerms: termsData,
+          proofUploads: proofData,
+          referralCode: normalizedReferralCode,
+        } }),
       });
       const paymentResult = await paymentResponse.json();
       if (paymentResult.paid) {

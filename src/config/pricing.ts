@@ -21,6 +21,30 @@ export const DEFAULT_PRICING: PricingConfig = {
   notaryExtraFee: 200,
 };
 
+export const MAX_PRICING_AMOUNT = Math.floor(Number.MAX_SAFE_INTEGER / 200);
+const PRICING_MINIMUMS = {
+  stamp100Chennai: 100, stamp100TamilNadu: 100,
+  stamp200Chennai: 200, stamp200TamilNadu: 200, notaryExtraFee: 0,
+} as const;
+
+export function validatePricingConfig(value: unknown): asserts value is PricingConfig {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid pricing configuration.');
+  const data = value as Record<string, unknown>;
+  for (const [key, minimum] of Object.entries(PRICING_MINIMUMS)) {
+    const amount = data[key];
+    if (typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount < minimum || amount > MAX_PRICING_AMOUNT) {
+      throw new Error(`${key} must be a whole-rupee amount between ${minimum} and ${MAX_PRICING_AMOUNT}.`);
+    }
+  }
+}
+
+// Missing settings use published defaults. Explicit invalid values fail closed.
+export function resolvePricingConfig(value: Record<string, unknown>): PricingConfig {
+  const pricing = { ...DEFAULT_PRICING, ...value };
+  validatePricingConfig(pricing);
+  return pricing;
+}
+
 export interface PriceBreakdown {
   stampPaperDenomination: 100 | 200;
   deliveryLocation: 'Within Chennai' | 'Within Tamil Nadu';
@@ -37,6 +61,7 @@ export function calculateOrderPrice(
   deliveryLocation: 'Within Chennai' | 'Within Tamil Nadu' = 'Within Chennai',
   includeNotary: boolean = false
 ): PriceBreakdown {
+  validatePricingConfig(pricing);
   const isChennai = deliveryLocation === 'Within Chennai';
   let basePackagePrice = 350;
 

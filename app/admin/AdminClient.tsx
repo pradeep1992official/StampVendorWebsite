@@ -46,6 +46,7 @@ import { ADMIN_EMAIL, ADMIN_EMAILS, isUserAdmin } from '@/src/config/admin';
 import { RentalAgreementDocument } from '@/components/agreement/RentalAgreementDocument';
 import { DEFAULT_PRICING, PricingConfig } from '@/src/config/pricing';
 import { getPricingConfig, savePricingConfig } from '@/lib/pricing-service';
+
 import { DEFAULT_SUPPORT_EMAIL, getSupportEmail, saveSupportEmail } from '@/lib/support-email';
 import { DEFAULT_COURIER_PARTNERS, getCourierPartners, saveCourierPartners } from '@/lib/courier-service';
 
@@ -423,7 +424,7 @@ export function AdminClient() {
       setTimeout(() => setPricingSavedToast(false), 4000);
     } catch (err) {
       console.error('Failed to save pricing config:', err);
-      alert('Failed to save pricing changes. Please check permissions.');
+      alert(err instanceof Error ? err.message : 'Failed to save pricing changes. Please check permissions.');
     } finally {
       setSavingPricing(false);
     }
@@ -1489,7 +1490,7 @@ export function AdminClient() {
                   <button
                     type="button"
                     onClick={() => setShowAgreementPrint(true)}
-                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                    className="bg-amber-600 hover:bg-amber-700 text-stone-900 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
                     title="Open agreement formatted for non-judicial stamp paper"
                   >
                     <Printer className="w-3.5 h-3.5" />
@@ -1580,75 +1581,6 @@ export function AdminClient() {
               </div>
             </div>
 
-            {/* Uploaded Documents Review (if submitted on legacy orders) */}
-            {Boolean(
-              selectedOrder.proofUploads?.ownerIdProofUrl ||
-              selectedOrder.proofUploads?.tenantIdProofUrl ||
-              selectedOrder.proofUploads?.propertyProofUrl
-            ) && (
-              <div className="border-t border-stone-200 pt-4 space-y-3">
-                <h3 className="font-bold text-stone-900 text-xs">Customer Uploaded Proofs</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between">
-                    <div>
-                      <span className="font-semibold block text-stone-800">Owner ID</span>
-                      <span className="text-[11px] text-stone-500 truncate block max-w-[120px]">
-                        {selectedOrder.proofUploads?.ownerIdProofFileName || 'File'}
-                      </span>
-                    </div>
-                    {selectedOrder.proofUploads?.ownerIdProofUrl ? (
-                      <a
-                        href={selectedOrder.proofUploads.ownerIdProofUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 bg-stone-200 hover:bg-stone-300 rounded-lg text-stone-700 cursor-pointer"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </a>
-                    ) : null}
-                  </div>
-
-                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between">
-                    <div>
-                      <span className="font-semibold block text-stone-800">Tenant ID</span>
-                      <span className="text-[11px] text-stone-500 truncate block max-w-[120px]">
-                        {selectedOrder.proofUploads?.tenantIdProofFileName || 'File'}
-                      </span>
-                    </div>
-                    {selectedOrder.proofUploads?.tenantIdProofUrl ? (
-                      <a
-                        href={selectedOrder.proofUploads.tenantIdProofUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 bg-stone-200 hover:bg-stone-300 rounded-lg text-stone-700 cursor-pointer"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </a>
-                    ) : null}
-                  </div>
-
-                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between">
-                    <div>
-                      <span className="font-semibold block text-stone-800">Property Proof</span>
-                      <span className="text-[11px] text-stone-500 truncate block max-w-[120px]">
-                        {selectedOrder.proofUploads?.propertyProofFileName || 'File'}
-                      </span>
-                    </div>
-                    {selectedOrder.proofUploads?.propertyProofUrl ? (
-                      <a
-                        href={selectedOrder.proofUploads.propertyProofUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 bg-stone-200 hover:bg-stone-300 rounded-lg text-stone-700 cursor-pointer"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </a>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Status Change & Workflow Action Box */}
             <div className="border-t border-stone-200 pt-4 space-y-4">
               <h3 className="font-bold text-stone-900 text-xs">Fulfillment Workflow Actions</h3>
@@ -1725,7 +1657,7 @@ export function AdminClient() {
                     rows={2}
                     value={correctionMsg}
                     onChange={(e) => setCorrectionMsg(e.target.value)}
-                    placeholder="Specify what needs correction (e.g. Please re-upload clearer copy of the electricity bill or correct landlord name)..."
+                    placeholder="Specify what needs correction (e.g. Correct the landlord name or property address)..."
                     className="w-full p-2.5 rounded-xl border border-rose-300 bg-white text-xs text-stone-900"
                   />
                   <button

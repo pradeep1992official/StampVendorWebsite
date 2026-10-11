@@ -25,12 +25,12 @@ export const faqData: FaqItem[] = [
   {
     category: 'privacy',
     q: 'Is Aadhaar information required, and what should I enter?',
-    a: 'Providing Aadhaar information is optional. If you choose to enter it, provide the 10-digit Aadhaar number requested by the form. Upload only the identity documents requested in the form.',
+    a: 'Providing Aadhaar information is optional. Enter only the information requested by the form. This service does not accept document uploads.',
   },
   {
     category: 'privacy',
-    q: 'Who can access the identity or property proof documents I upload?',
-    a: 'Uploaded proof files are not publicly readable. Access is restricted to the signed-in order owner and authorized administrators. Submit only documents needed to process your order.',
+    q: 'Do I need to upload identity or property documents?',
+    a: 'No. This service collects the details entered in the agreement form and does not accept document uploads.',
   },
   {
     category: 'pricing',

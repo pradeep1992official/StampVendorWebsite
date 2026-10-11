@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase-admin';
 import { confirmPaidOrderAndGrantReferral, releaseReferralReservation } from '@/lib/referral-admin';
+import { isTrustedPaymentAttempt } from '@/lib/payment-attempt';
 function isAuthorizedWebhook(req: NextRequest) {
   const username = process.env.PHONEPE_WEBHOOK_USERNAME;
   const password = process.env.PHONEPE_WEBHOOK_PASSWORD;
@@ -34,18 +35,21 @@ export async function POST(req: NextRequest) {
     const merchantOrderId = typeof payload.merchantOrderId === 'string'
       ? payload.merchantOrderId
       : '';
-    if (!merchantOrderId) return NextResponse.json({ error: 'Missing merchant order reference.' }, { status: 400 });
+    if (!/^[A-Za-z0-9_-]+$/.test(merchantOrderId)) return NextResponse.json({ error: 'Missing merchant order reference.' }, { status: 400 });
 
     const db = getAdminDb();
-    const matches = await db.collection('orders')
-      .where('payment.phonepeMerchantOrderIds', 'array-contains', merchantOrderId)
-      .limit(1)
-      .get();
-    if (matches.empty) return NextResponse.json({ error: 'Payment order not found.' }, { status: 404 });
-
-    const orderDoc = matches.docs[0];
+    const attemptSnapshot = await db.collection('phonepePaymentAttempts').doc(merchantOrderId).get();
+    const paymentAttempt = attemptSnapshot.data();
+    if (!paymentAttempt || typeof paymentAttempt.orderId !== 'string') {
+      return NextResponse.json({ error: 'Payment order not found.' }, { status: 404 });
+    }
+    const orderDoc = await db.collection('orders').doc(paymentAttempt.orderId).get();
     const order = orderDoc.data();
-    if (payload.amount !== Math.round(Number(order.payment?.amount) * 100)) {
+    if (!order || !isTrustedPaymentAttempt(paymentAttempt, orderDoc.id, order.ownerUid, merchantOrderId)) {
+      return NextResponse.json({ error: 'Payment order not found.' }, { status: 404 });
+    }
+    const expectedAmount = paymentAttempt.amount;
+    if (typeof expectedAmount !== 'number' || payload.amount !== Math.round(expectedAmount * 100)) {
       console.error('PhonePe webhook amount mismatch for order:', order.orderId);
       return NextResponse.json({ error: 'PhonePe payment amount mismatch.' }, { status: 409 });
     }
@@ -53,33 +57,13 @@ export async function POST(req: NextRequest) {
     const completedPayment = Array.isArray(payload.paymentDetails)
       ? payload.paymentDetails.find((payment: { state?: string }) => payment.state === 'COMPLETED')
       : undefined;
-    let shouldReleaseReservation = false;
-    await db.runTransaction(async (transaction) => {
-      const currentSnap = await transaction.get(orderDoc.ref);
-      const currentOrder = currentSnap.data();
-      if (!currentSnap.exists || currentOrder?.payment?.status === 'Paid') return;
-
-      const now = new Date().toISOString();
-      if (isFailed) {
-        if (currentOrder?.payment?.phonepeMerchantOrderId === merchantOrderId) {
-          shouldReleaseReservation = true;
-          transaction.update(orderDoc.ref, {
-            'payment.status': 'Failed',
-            updatedAt: now,
-          });
-        }
-        return;
-      }
-
-    });
-
     if (isCompleted) {
       await confirmPaidOrderAndGrantReferral(orderDoc.id, {
         transactionId: completedPayment?.transactionId ?? merchantOrderId,
         merchantOrderId,
       });
-    } else if (shouldReleaseReservation) {
-      await releaseReferralReservation(orderDoc.id);
+    } else if (isFailed) {
+      await releaseReferralReservation(orderDoc.id, merchantOrderId, 'FAILED');
     }
 
     return NextResponse.json({ status: 'success' });

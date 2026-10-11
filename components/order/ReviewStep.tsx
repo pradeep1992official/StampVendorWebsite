@@ -225,6 +225,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
               const returnUrl = new URL('/payment/phonepe/return', window.location.origin);
               returnUrl.searchParams.set('orderId', paymentOrderId);
               returnUrl.searchParams.set('paymentStartedAt', String(phonePeCheckout.initiatedAt));
+              returnUrl.searchParams.set('merchantOrderId', phonePeCheckout.merchantOrderId);
               window.location.assign(returnUrl.toString());
             }
           },
@@ -557,8 +558,8 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             )}
           </div>
         ) : (
-          <div className="bg-stone-800/90 rounded-xl p-4 border border-stone-700 space-y-2 text-xs">
-            <div className="flex items-center gap-2 text-amber-400 font-semibold">
+          <div className="bg-stone-100 rounded-xl p-4 border border-stone-300 space-y-2 text-xs">
+            <div className="flex items-center gap-2 text-amber-800 font-semibold">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>Order Review & Submission</span>
             </div>

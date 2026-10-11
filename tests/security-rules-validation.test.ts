@@ -45,6 +45,9 @@ function canCustomerCreateOrder(
   if (orderData.payment?.status !== 'Pending') {
     return { allowed: false, reason: 'Payment status must be Pending on create' };
   }
+  if (Object.keys(orderData.payment).some((key) => key !== 'status')) {
+    return { allowed: false, reason: 'Gateway payment metadata is server-managed' };
+  }
   if ('courier' in orderData) {
     return { allowed: false, reason: 'courier is disallowed on create' };
   }
@@ -129,6 +132,16 @@ test('Firestore Security Rules: Customer Order Creation Enforcement', () => {
   );
 
   // Client attempting ghost field injection
+  for (const payment of [
+    { status: 'Pending', amount: 1 },
+    { status: 'Pending', phonepeMerchantOrderId: 'STOLEN_ATTEMPT' },
+    { status: 'Pending', phonepeRedirectUrl: 'https://attacker.example' },
+    { status: 'Pending', phonepePaymentAttempts: [{ merchantOrderId: 'STOLEN_ATTEMPT', amount: 1 }] },
+    { status: 'Pending', referralCreditApplied: 1000 },
+  ]) {
+    assert.equal(canCustomerCreateOrder({ uid: 'user_123' }, { ...validOrder, payment }).allowed, false);
+  }
+
   const ghostFieldOrder = { ...validOrder, isVerifiedByVendor: true };
   assert.equal(
     canCustomerCreateOrder({ uid: 'user_123' }, ghostFieldOrder).allowed,

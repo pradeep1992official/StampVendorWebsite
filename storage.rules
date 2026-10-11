@@ -39,7 +39,8 @@ service firebase.storage {
 
     // In-progress customer draft uploads
     match /drafts/{uid}/{file} {
-      allow read, write, delete: if isSignedIn()
+      allow read, delete: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn()
         && request.auth.uid == uid
         && request.resource.size <= 5 * 1024 * 1024
         && request.resource.contentType.matches('image/jpeg|image/png|application/pdf');

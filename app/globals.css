@@ -2,29 +2,116 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Noto+Sans+Tamil:wght@400;600;700&display=swap');
 
 @theme {
-  --color-stone-50: #fef3e2;
-  --color-stone-100: #f9e8d2;
-  --color-stone-200: #f0d8bd;
-  --color-stone-300: #dec3a3;
-  --color-stone-400: #b99a78;
-  --color-stone-500: #8d6e52;
-  --color-stone-600: #694c36;
-  --color-stone-700: #4b3425;
-  --color-stone-800: #38251a;
-  --color-stone-900: #2a1a0e;
-  --color-stone-950: #21130a;
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-600: #0b5e9e;
+  --color-brand-700: #0b4f86;
+  --color-brand-800: #16436a;
+  --color-stone-50: #f8fafc;
+  --color-stone-100: #eff6ff;
+  --color-stone-200: #dbe7f0;
+  --color-stone-300: #bfddf0;
+  --color-stone-400: #8cc0eb;
+  --color-stone-500: #628eae;
+  --color-stone-600: #4c7188;
+  --color-stone-700: #36586f;
+  --color-stone-800: #2b4558;
+  --color-stone-900: #1e3445;
+  --color-stone-950: #172a39;
 
-  --color-amber-50: #fff8eb;
-  --color-amber-100: #fef3e2;
-  --color-amber-200: #fce3bf;
-  --color-amber-300: #f8cc8a;
-  --color-amber-400: #f4ae52;
-  --color-amber-500: #f4ae52;
-  --color-amber-600: #d4621a;
-  --color-amber-700: #b84d12;
-  --color-amber-800: #913b10;
-  --color-amber-900: #6f2c10;
-  --color-amber-950: #4c1d0c;
+  --color-amber-50: #f0fdf4;
+  --color-amber-100: #dcfce7;
+  --color-amber-200: #c9e8d0;
+  --color-amber-300: #9fd4ad;
+  --color-amber-400: #65b47d;
+  --color-amber-500: #328c51;
+  --color-amber-600: #247542;
+  --color-amber-700: #1b6137;
+  --color-amber-800: #164f2f;
+  --color-amber-900: #103e26;
+  --color-amber-950: #0a2d1b;
+}
+
+.bg-stone-700 {
+  background-color: var(--color-stone-300);
+}
+
+.bg-stone-800 {
+  background-color: var(--color-stone-200);
+}
+
+.bg-stone-900 {
+  background-color: var(--color-stone-100);
+}
+
+.bg-stone-950 {
+  background-color: var(--color-stone-50);
+}
+
+:is(.bg-stone-700, .bg-stone-800, .bg-stone-900, .bg-stone-950):is(
+    .text-white
+  ),
+:is(.bg-stone-700, .bg-stone-800, .bg-stone-900, .bg-stone-950)
+  .text-white {
+  color: var(--color-stone-900);
+}
+
+.text-stone-100,
+.text-stone-200,
+.text-stone-300 {
+  color: var(--color-stone-700);
+}
+
+.text-stone-400,
+.text-stone-500 {
+  color: var(--color-stone-600);
+}
+
+.text-amber-300,
+.text-amber-400,
+.text-amber-500,
+.text-amber-600 {
+  color: var(--color-amber-800);
+}
+
+.bg-amber-500,
+.bg-amber-600 {
+  color: #fff;
+}
+
+.bg-amber-500 svg,
+.bg-amber-600 svg {
+  color: #fff;
+}
+
+.hover\:bg-amber-400:hover {
+  background-color: var(--color-amber-600);
+}
+
+.hover\:bg-amber-500:hover {
+  background-color: var(--color-amber-700);
+}
+
+.hover\:bg-amber-600:hover {
+  background-color: var(--color-amber-700);
+}
+
+.bg-amber-500.text-stone-950,
+.bg-amber-600.text-stone-950 {
+  background-color: var(--color-amber-600);
+  color: #fff;
+}
+
+.bg-amber-500.text-stone-950:hover,
+.bg-amber-600.text-stone-950:hover {
+  background-color: var(--color-amber-700);
+  color: #fff;
+}
+
+.bg-amber-500.text-stone-950 svg,
+.bg-amber-600.text-stone-950 svg {
+  color: #fff;
 }
 
 .rent-receipt-top-rule {

@@ -1,12 +1,12 @@
 # StampVendorWebsite
 
-A web application for stamp vendor services and rental agreement drafting, with customer ordering, document uploads, fee calculation, order tracking, and an administration interface.
+A web application for stamp vendor services and rental agreement drafting, with customer ordering, fee calculation, order tracking, and an administration interface. Customers enter agreement details; document uploads are not part of this service.
 
 Repository: https://github.com/pradeep1992official/StampVendorWebsite
 
 ## Features
 
-- Guided order intake for property, owner, tenant, agreement terms, and supporting documents.
+- Guided order intake for property, owner, tenant, and agreement terms.
 - Rental agreement document generation and PDF utilities.
 - Fee calculation and pricing display.
 - Customer order history and tracking.
@@ -78,7 +78,7 @@ Configure these in `.env.local` for local development and in the hosting environ
 | `PHONEPE_WEBHOOK_PASSWORD` | Basic-auth password configured for the PhonePe webhook |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Optional Firebase service account JSON for server-side token verification and payment updates; production can use Application Default Credentials |
 | `GEMINI_API_KEY` | Gemini API access where Gemini features are used |
-| `APP_URL` | Public application URL used for absolute integration redirects, including the PhonePe payment return URL (for example, `https://your-domain.example`) |
+| `APP_URL` | Public application URL used for production integration redirects, including the PhonePe payment return URL (for example, `https://your-domain.example`). Local development uses the current request origin instead. |
 
 Configure the PhonePe webhook in the PhonePe Business dashboard to call `https://<your-domain>/api/payment/phonepe/webhook` and use the same webhook username and password configured above. Checkout uses the server-calculated saved order total; credentials are never exposed to the browser. Missing PhonePe or Firebase Admin credentials prevent online checkout and payment confirmation.
 
@@ -93,7 +93,7 @@ Before using the application:
 1. Confirm the Firebase project, Storage bucket, and Firestore database ID are the intended ones.
 2. Enable Google sign-in and authorize the domains used for local development and hosting in Firebase Authentication.
 3. Review and deploy `firestore.rules` and `storage.rules` to the intended project through your Firebase deployment setup or console.
-4. Test customer and administrator access, uploads, and database reads/writes.
+4. Test customer and administrator access and database reads/writes.
 
 AI Studio migration may provision or select an applet database. Verify its identity before using existing customer data. Environment variables alone do not replace the Firebase JSON configuration used by this repository.
 
@@ -116,6 +116,22 @@ Courier partners can be managed by an authorized administrator in the Admin Cons
 Customers can visit **Referral Credits** to get a unique share link and view referrals and their credit ledger. A referring customer earns the administrator-configured reward after a new customer’s first rental-agreement order is paid. The reward is credited once, does not expire, and can be applied to the full total of a future order. Customers choose the amount to use at checkout; credit is not cash-redeemable. Administrators manage the reward amount under **Referral Credits** in the Admin Console.
 
 Referral account data, credit reservations, and the reward ledger are server-managed. Referral API routes require Firebase ID-token verification; do not grant client Firestore access to referral account or ledger collections. Deploy the updated Firestore rules along with the application.
+
+### Payment security rollout
+
+Customer-created orders may contain only `payment: { status: 'Pending' }`, and their `orderId` must match the document ID. PhonePe checkout creates a server-only record in `phonepePaymentAttempts` alongside the order update and credit reservation before requesting checkout. Checkout reuse, status verification, and webhooks require this record to match the order and customer; gateway amounts and URLs are read from this record rather than client-originated order metadata.
+
+Deploy the updated `firestore.rules` and application together. The private attempt collection must remain inaccessible to all client SDKs. Existing pending PhonePe attempts created before this change have no trusted record and will not be reused or automatically confirmed. Review their actual gateway status before allowing another checkout to avoid charging a customer twice. Reconcile completed legacy payments using verified gateway records; do not backfill trusted attempts from the old order payment fields. Orders already marked Paid are unchanged.
+
+Checkout is serialized per order with server-only `checkoutLocks` records. Gateway-pending attempts are reused even after the local checkout timer expires; a replacement requires a confirmed failed/expired gateway outcome. Uncertain gateway responses retain their attempt and credit reservation for verification. A delayed completion for a released or superseded attempt requires vendor reconciliation and cannot consume a newer reservation. Existing reserved credits without a payment-attempt association also require reconciliation before settlement.
+
+After a confirmed failed/expired attempt, the wizard sends the current reviewed details to checkout, which saves them and recalculates pricing before creating the replacement. Edits and credit changes are rejected while an existing checkout is payable. Credit release and terminal payment updates commit atomically, and each reservation cycle has its own refund-ledger entry.
+
+Document-upload controls are disabled because this service does not collect files. The legacy `/api/upload` endpoint returns HTTP 410 and performs no uploads or downloads. Storage rules retain correct owner-only read/delete handling for any historical draft files; size and format checks apply only to file creation/update. These Storage rules do not affect autosaved agreement forms, which are Firestore documents.
+
+PhonePe is the active payment integration. The unused legacy `/api/payment/create-order` and `/api/payment/webhook` endpoints return HTTP 410 and cannot create gateway orders or modify payments. Historical payment type fields remain for compatibility with existing records.
+
+Pricing is validated before saving, when reading saved settings, during fee calculation, and at checkout. The four package prices must be whole rupees and at least their stamp face value (100 or 200); the optional notary surcharge may be zero. Non-finite, fractional, negative and unsafe amounts are rejected. Firestore rules enforce the same constraints on direct writes to `settings/pricing`. Deploy both the Firestore and Storage rule changes with the application.
 
 ## Project structure
 
@@ -145,10 +161,17 @@ storage.rules                Firebase Storage access rules
 ```sh
 npm run lint
 npm test
+npm run test:rules
 npm run build
 ```
 
-The test command covers validation, fee calculation, security rule validation, and agreement document tests. These checks do not replace testing real Firebase and PhonePe integrations.
+`npm test` runs the fast unit and mocked route tests, including checkout concurrency, credit reservation/release, pricing validation, and safe build cleanup. `npm run test:rules` runs the actual Firestore and Storage rules in Firebase's local emulators using the isolated `demo-stampsure-tests` project; it never uses the application's production Firebase configuration. Install Java 21 or newer and put `java` on PATH before running it. The first run downloads the emulator binaries.
+
+The emulator suite checks customer/admin access, forged order payment fields, correction restrictions, private server collections, pricing constraints, and historical draft-file reads/deletes and upload limits. Source-only rules tests remain supplemental. These checks do not replace PhonePe sandbox checkout/webhook testing or a browser walkthrough of sign-in, ordering, and tracking.
+
+The GitHub Actions workflow at `.github/workflows/checks.yml` runs lint, TypeScript, application tests, emulator tests, and a production build on pushes and pull requests.
+
+`npm run clean` removes only this project's `.next` build output and is safe to repeat. Stop the development server before using it, then restart or rebuild as needed.
 
 To run a production build locally:
 
@@ -208,7 +231,7 @@ Ask AI tools to preserve the existing Next.js architecture, routes, authenticati
 - Run lint, tests, and the production build.
 - Verify vendor information and remaining placeholders.
 - Confirm the intended Firebase project and access rules.
-- Exercise sign-in, order submission, uploads, tracking, and agreement generation.
+- Exercise sign-in, order submission, tracking, and agreement generation.
 - Verify PhonePe checkout, return status, and webhook processing in sandbox before enabling production credentials.
 - Configure server secrets in the target hosting environment.
 

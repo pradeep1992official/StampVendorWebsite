@@ -118,6 +118,11 @@ export function MyOrdersClient() {
         body: JSON.stringify({ orderId }),
       });
       const result = await response.json();
+      if (response.ok && result.paid) {
+        setOrders((previous) => previous.map((order) => order.orderId === orderId ? result.order as Order : order));
+        setStartingPaymentOrderId(null);
+        return;
+      }
       if (!response.ok || !result.available || !result.redirectUrl) {
         throw new Error(result.error || 'Unable to start online payment. Please try again.');
       }
@@ -419,7 +424,7 @@ export function MyOrdersClient() {
                     <div>
                       <strong className="font-bold text-rose-900 block">Vendor Correction Notice:</strong>
                       <p className="mt-0.5 leading-relaxed text-rose-800">
-                        {ord.correctionMessage || 'Please update your uploaded ID or property proof documents.'}
+                        {ord.correctionMessage || 'Please review the requested corrections to your agreement details.'}
                       </p>
                     </div>
                   </div>
@@ -427,7 +432,7 @@ export function MyOrdersClient() {
                   {activeCorrectionOrderId === ord.orderId ? (
                     <div className="bg-white p-4 rounded-xl border border-rose-200 space-y-3">
                       <p className="text-[11px] text-stone-600">
-                        Upload corrected documents or provide your clarification note to the vendor desk:
+                        Provide your clarification note to the vendor desk:
                       </p>
                       <textarea
                         rows={2}

@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/auth-context';
 
 type PaymentResult = 'checking' | 'paid' | 'pending' | 'failed' | 'error';
 
-async function requestPaymentStatus(user: User, orderId: string) {
+async function requestPaymentStatus(user: User, orderId: string, merchantOrderId: string) {
   const idToken = await user.getIdToken();
   const response = await fetch('/api/payment/phonepe/status', {
     method: 'POST',
@@ -17,7 +17,7 @@ async function requestPaymentStatus(user: User, orderId: string) {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ orderId }),
+    body: JSON.stringify({ orderId, merchantOrderId: merchantOrderId || undefined }),
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Could not verify payment.');
@@ -41,6 +41,7 @@ function getPhonePeReconciliationOffsets(expireAt?: number, initiatedAt?: number
 function PhonePeReturnContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId') ?? '';
+  const merchantOrderId = searchParams.get('merchantOrderId') ?? '';
   const paymentStartedAtParam = Number(searchParams.get('paymentStartedAt'));
   const { user, loading } = useAuth();
   const [result, setResult] = useState<PaymentResult>('checking');
@@ -51,7 +52,7 @@ function PhonePeReturnContent() {
     if (!user || !orderId) return;
     setResult('checking');
     try {
-      const data = await requestPaymentStatus(user, orderId);
+      const data = await requestPaymentStatus(user, orderId, merchantOrderId);
       if (data.paid) {
         setResult('paid');
         setMessage('Payment received. Your order is now under verification.');
@@ -79,6 +80,12 @@ function PhonePeReturnContent() {
         body: JSON.stringify({ orderId }),
       });
       const data = await response.json();
+      if (response.ok && data.paid) {
+        setResult('paid');
+        setMessage('Payment received. Your order is now under verification.');
+        setStartingCheckout(false);
+        return;
+      }
       if (!response.ok || !data.available || !data.redirectUrl) {
         throw new Error(data.error || 'Unable to restart secure checkout.');
       }
@@ -102,7 +109,7 @@ function PhonePeReturnContent() {
     async function reconcilePayment() {
       if (!isCurrent) return;
       try {
-        const data = await requestPaymentStatus(authenticatedUser, orderId);
+        const data = await requestPaymentStatus(authenticatedUser, orderId, merchantOrderId);
         if (!isCurrent) return;
         const initiatedAt = data.initiatedAt ?? requestedInitiatedAt;
         if (data.paid) {
@@ -110,7 +117,7 @@ function PhonePeReturnContent() {
           setMessage('Payment received. Your order is now under verification.');
           return;
         }
-        if (data.state === 'FAILED') {
+        if (data.state === 'FAILED' || data.state === 'EXPIRED') {
           setResult('failed');
           setMessage('This payment failed. You can safely try checkout again.');
           return;
@@ -143,7 +150,7 @@ function PhonePeReturnContent() {
       isCurrent = false;
       if (timer) clearTimeout(timer);
     };
-  }, [loading, user, orderId, paymentStartedAtParam]);
+  }, [loading, user, orderId, merchantOrderId, paymentStartedAtParam]);
 
   const displayResult = loading ? 'checking' : !user || !orderId ? 'error' : result;
   const displayMessage = !loading && !user

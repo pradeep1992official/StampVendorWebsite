@@ -24,37 +24,37 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <div className="space-y-16 pb-16">
+    <div className="space-y-16 bg-stone-50 pb-16">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-stone-900 via-stone-900 to-stone-950 text-white pt-10 sm:pt-16 pb-16 px-4 sm:px-6 lg:px-8 border-b border-stone-800">
+      <section className="relative overflow-hidden bg-white text-stone-900 pt-10 sm:pt-16 pb-16 px-4 sm:px-6 lg:px-8 border-b border-stone-200">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             {/* Left Column: Heading and Value Props */}
             <div className="lg:col-span-7 space-y-6">
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
-                StampSure: Rental Agreements on Tamil Nadu Stamp Paper
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-stone-900 leading-tight">
+                Rental Agreements on Tamil Nadu Stamp Paper
               </h1>
 
-              <p className="text-stone-300 text-base sm:text-lg leading-relaxed max-w-2xl font-normal">
+              <p className="text-stone-700 text-base sm:text-lg leading-relaxed max-w-2xl font-normal">
                 Submit your tenancy details online and get your agreement drafted on Tamil Nadu stamp paper, delivered directly to your doorstep.
               </p>
 
               {/* Core Features */}
               <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div className="flex items-center gap-2 text-stone-800 text-xs sm:text-sm font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-brand-600 shrink-0" />
                   <span>Non-Judicial Stamp Paper</span>
                 </div>
-                <div className="flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div className="flex items-center gap-2 text-stone-800 text-xs sm:text-sm font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-brand-600 shrink-0" />
                   <span>Courier Dispatch</span>
                 </div>
-                <div className="flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div className="flex items-center gap-2 text-stone-800 text-xs sm:text-sm font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-brand-600 shrink-0" />
                   <span>1 Physical Original Copy</span>
                 </div>
-                <div className="flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div className="flex items-center gap-2 text-stone-800 text-xs sm:text-sm font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-brand-600 shrink-0" />
                   <span>Itemized Fee Transparency</span>
                 </div>
               </div>
@@ -63,9 +63,9 @@ export default function HomePage() {
               <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <Link
                   href="/order"
-                  className="bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold px-7 py-3.5 rounded-xl shadow-lg shadow-amber-500/20 text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-transform active:scale-95"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-7 py-3.5 rounded-xl shadow-lg shadow-amber-800/20 text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-transform active:scale-95"
                 >
-                  <FileText className="w-5 h-5 text-stone-950" />
+                  <FileText className="w-5 h-5 text-white" />
                   <span>Start Your Agreement</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
@@ -83,7 +83,7 @@ export default function HomePage() {
       {/* What We Do Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto space-y-3 mb-12">
-          <span className="text-xs uppercase tracking-wider font-bold text-amber-800 bg-amber-100 px-3 py-1 rounded-full">
+          <span className="text-xs uppercase tracking-wider font-bold text-brand-800 bg-brand-100 px-3 py-1 rounded-full">
             Online Stamping Service
           </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-stone-900 tracking-tight">
@@ -96,7 +96,7 @@ export default function HomePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center font-bold text-base">
+            <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-800 flex items-center justify-center font-bold text-base">
               01
             </div>
             <h3 className="font-bold text-stone-900 text-base">Non-Judicial Stamp Paper</h3>
@@ -106,7 +106,7 @@ export default function HomePage() {
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center font-bold text-base">
+            <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-800 flex items-center justify-center font-bold text-base">
               02
             </div>
             <h3 className="font-bold text-stone-900 text-base">Standard Tenancy Clauses</h3>
@@ -116,7 +116,7 @@ export default function HomePage() {
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center font-bold text-base">
+            <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-800 flex items-center justify-center font-bold text-base">
               03
             </div>
             <h3 className="font-bold text-stone-900 text-base">Privacy</h3>
@@ -126,7 +126,7 @@ export default function HomePage() {
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center font-bold text-base">
+            <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-800 flex items-center justify-center font-bold text-base">
               04
             </div>
             <h3 className="font-bold text-stone-900 text-base">Courier Dispatch</h3>
@@ -141,7 +141,7 @@ export default function HomePage() {
       <section className="bg-stone-100 py-16 px-4 sm:px-6 lg:px-8 border-y border-stone-200">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-3xl mx-auto space-y-3 mb-14">
-            <span className="text-xs uppercase tracking-wider font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
+            <span className="text-xs uppercase tracking-wider font-bold text-brand-800 bg-brand-100 px-3 py-1 rounded-full">
               Simple Process
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-stone-900 tracking-tight">
@@ -155,8 +155,8 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-3xl font-black text-amber-600">01</span>
-                <div className="p-2 bg-amber-50 rounded-lg text-amber-800">
+                <span className="text-3xl font-black text-brand-600">01</span>
+                <div className="p-2 bg-brand-50 rounded-lg text-brand-800">
                   <FileText className="w-5 h-5" />
                 </div>
               </div>
@@ -168,8 +168,8 @@ export default function HomePage() {
 
             <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-3xl font-black text-amber-600">02</span>
-                <div className="p-2 bg-sky-50 rounded-lg text-sky-800">
+                <span className="text-3xl font-black text-brand-600">02</span>
+                <div className="p-2 bg-brand-50 rounded-lg text-brand-800">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
               </div>
@@ -181,8 +181,8 @@ export default function HomePage() {
 
             <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-3xl font-black text-amber-600">03</span>
-                <div className="p-2 bg-purple-50 rounded-lg text-purple-800">
+                <span className="text-3xl font-black text-brand-600">03</span>
+                <div className="p-2 bg-brand-50 rounded-lg text-brand-800">
                   <Clock className="w-5 h-5" />
                 </div>
               </div>
@@ -194,8 +194,8 @@ export default function HomePage() {
 
             <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-3xl font-black text-amber-600">04</span>
-                <div className="p-2 bg-emerald-50 rounded-lg text-emerald-800">
+                <span className="text-3xl font-black text-brand-600">04</span>
+                <div className="p-2 bg-brand-50 rounded-lg text-brand-800">
                   <Truck className="w-5 h-5" />
                 </div>
               </div>
@@ -209,7 +209,7 @@ export default function HomePage() {
           <div className="mt-10 text-center">
             <Link
               href="/how-it-works"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-stone-800 hover:text-amber-700 transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-stone-800 hover:text-brand-800 transition-colors"
             >
               <span>View full process</span>
               <ChevronRight className="w-4 h-4" />

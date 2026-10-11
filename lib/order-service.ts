@@ -12,6 +12,7 @@ import {
 import { db, auth } from './firebase';
 import { Order, Draft, OrderStatus } from './types';
 import { handleFirestoreError, OperationType } from './firestore-errors';
+import { omitUndefinedValues } from './firestore-data';
 import { isUserAdmin } from '@/src/config/admin';
 
 /**
@@ -24,7 +25,7 @@ export async function saveDraft(uid: string, currentStep: number, formData: Part
     await setDoc(draftRef, {
       ownerUid: uid,
       currentStep,
-      formData,
+      formData: omitUndefinedValues(formData),
       updatedAt: new Date().toISOString(),
     });
   } catch (err) {
