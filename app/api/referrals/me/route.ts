@@ -12,10 +12,12 @@ export async function GET(request: NextRequest) {
     const db = getAdminDb();
     const account = await getOrCreateReferralAccount(uid, db);
     const referralSettings = await db.collection('settings').doc('referrals').get();
-    const [ordersSnapshot, rewardsSnapshot, ledgerSnapshot] = await Promise.all([
+    const [ordersSnapshot, rewardsSnapshot, ledgerSnapshot, firstPaidOrder, customerOrders] = await Promise.all([
       db.collection('orders').where('referralCode', '==', account.code).limit(100).get(),
       db.collection('referralRewards').where('referrerUid', '==', uid).limit(100).get(),
       db.collection('referralLedger').where('ownerUid', '==', uid).limit(100).get(),
+      db.collection('referralFirstPaidOrders').doc(uid).get(),
+      db.collection('orders').where('ownerUid', '==', uid).get(),
     ]);
 
     const rewardsByReferredUid = new Map(
@@ -44,6 +46,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       code: account.code,
       balance: account.balance,
+      canApplyReferralCode: !firstPaidOrder.exists && !customerOrders.docs.some((order) => order.data().payment?.status === 'Paid'),
       rewardAmount: getReferralRewardAmount(referralSettings.data()),
       referrals,
       ledger,

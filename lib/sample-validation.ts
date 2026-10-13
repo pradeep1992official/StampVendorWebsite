@@ -1,7 +1,6 @@
-import { createConnection } from 'node:net';
 import { ApiInputError } from '@/lib/api-input';
 
-// File signatures supplement extension/MIME checks; ClamAV is still required.
+// Validate file signatures and bounded DOCX structure before accepting samples.
 export function validateSampleBytes(bytes: Buffer, type: string) {
   const valid = type === 'application/pdf' ? bytes.subarray(0, 5).toString() === '%PDF-'
     : type === 'image/jpeg' ? bytes.length > 3 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255
@@ -31,34 +30,4 @@ function validDocx(bytes: Buffer): boolean {
     names.add(name); offset += 46 + length + extra + comment;
   }
   return names.has('[Content_Types].xml') && names.has('word/document.xml');
-}
-export async function scanSample(bytes: Buffer): Promise<void> {
-  const host = process.env.CLAMAV_HOST;
-  const port = Number(process.env.CLAMAV_PORT || 3310);
-  if (!host || !Number.isInteger(port) || port < 1 || port > 65535) throw new ApiInputError('Sample verification is temporarily unavailable. Your upload is saved; please retry submission later.', 503);
-  await new Promise<void>((resolve, reject) => {
-    const socket = createConnection({ host, port });
-    let response = '', done = false;
-    const finish = (error?: Error) => { if (done) return; done = true; clearTimeout(deadline); socket.destroy(); if (error) reject(error); else resolve(); };
-    const unavailable = () => new ApiInputError('Sample verification is temporarily unavailable. Please retry later.', 503);
-    const deadline = setTimeout(() => finish(unavailable()), 30_000);
-    socket.on('error', () => finish(unavailable()));
-    socket.on('end', () => { if (!done) finish(unavailable()); });
-    socket.on('data', (chunk) => {
-      response += chunk.toString();
-      if (response.length > 4096) return finish(unavailable());
-      if (!response.includes('\0') && !response.includes('\n')) return;
-      if (/^stream: OK[\0\r\n]*$/.test(response)) finish();
-      else if (/ FOUND[\0\r\n]*$/.test(response)) finish(new ApiInputError('A sample failed the security scan. Remove it and submit a clean sample.', 400));
-      else finish(unavailable());
-    });
-    socket.on('connect', () => {
-      socket.write('zINSTREAM\0');
-      for (let offset = 0; offset < bytes.length; offset += 64 * 1024) {
-        const chunk = bytes.subarray(offset, offset + 64 * 1024), header = Buffer.alloc(4);
-        header.writeUInt32BE(chunk.length); socket.write(header); socket.write(chunk);
-      }
-      socket.write(Buffer.alloc(4));
-    });
-  });
 }

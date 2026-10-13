@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     if (!/^sample-[1-3]$/.test(sampleId)) throw new ApiInputError('Invalid sample reference.');
     const data = (await getAdminDb().collection('customAgreementRequests').doc(id).get()).data();
     if (!data || (!identity.admin && data.ownerUid !== identity.uid)) throw new ApiInputError('Sample not found.', 404);
-    if (data.scanStatus !== 'Clean' || !data.files[sampleId]) throw new ApiInputError('Samples are unavailable until verification completes.', 409);
+    if ((data.verificationStatus !== 'Validated' && data.scanStatus !== 'Clean') || !data.files[sampleId]) throw new ApiInputError('Samples are unavailable until verification completes.', 409);
     const sample = data.files[sampleId];
     const [url] = await getAdminBucket().file(sample.path).getSignedUrl({
       version: 'v4', action: 'read', expires: Date.now() + 60_000,

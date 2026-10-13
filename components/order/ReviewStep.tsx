@@ -93,6 +93,8 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
   const { user } = useAuth();
   const [showAgreementPreview, setShowAgreementPreview] = useState<boolean>(false);
   const [referralBalance, setReferralBalance] = useState(0);
+  const [referralEligibility, setReferralEligibility] = useState<{ uid: string; eligible: boolean } | null>(null);
+  const canApplyReferralCode = Boolean(user && referralEligibility?.uid === user.uid && referralEligibility.eligible);
   const [referralBalanceLoading, setReferralBalanceLoading] = useState(false);
   const [creditAmount, setCreditAmount] = useState('0');
   const [phonePeSdkReady, setPhonePeSdkReady] = useState(false);
@@ -126,7 +128,10 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Could not load referral credit.');
-        if (isMounted) setReferralBalance(Number(data.balance || 0));
+        if (isMounted) {
+          setReferralBalance(Number(data.balance || 0));
+          setReferralEligibility({ uid: user!.uid, eligible: data.canApplyReferralCode === true });
+        }
       } catch (error) {
         console.error('Could not load referral credit for checkout:', error);
       } finally {
@@ -357,6 +362,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
       )}
 
       <div className="grid grid-cols-1 gap-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 sm:grid-cols-2">
+        {canApplyReferralCode && (
         <label className="block text-xs font-bold text-stone-800">
           Referral code <span className="font-normal text-stone-500">(optional)</span>
           <input
@@ -372,6 +378,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
             Referral codes can be used on your first paid order.
           </span>
         </label>
+        )}
 
         <label className="block text-xs font-bold text-stone-800">
           Apply referral credit
@@ -606,7 +613,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
           <button
             type="button"
             disabled={submitting || feeState.loading || feeState.quoteKey !== quoteKey || !feeState.paymentAllowed || Boolean(feeState.error) || (Boolean(phonePeCheckout) && !phonePeSdkError)}
-            onClick={() => void onSubmitOrder(referralCode, Number(creditAmount || 0), feeState.totalPayable ?? 0)}
+            onClick={() => void onSubmitOrder(canApplyReferralCode ? referralCode : '', Number(creditAmount || 0), feeState.totalPayable ?? 0)}
             className="w-full bg-amber-500 hover:bg-amber-400 disabled:bg-stone-600 text-stone-950 font-bold py-3.5 px-6 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
           >
             {submitting ? (

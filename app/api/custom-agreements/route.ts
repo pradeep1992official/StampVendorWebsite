@@ -4,7 +4,7 @@ import { getAdminDb, getAdminBucket } from '@/lib/firebase-admin';
 import { ApiInputError } from '@/lib/api-input';
 import { CustomRequest, CustomStatus, validateCustomInput, validateSample, canTransition, validDate } from '@/lib/custom-agreement';
 import { customIdentity, customBody, customError, requestReference } from '@/lib/custom-request-server';
-import { scanSample, validateSampleBytes } from '@/lib/sample-scanner';
+import { validateSampleBytes } from '@/lib/sample-validation';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const requests = snapshot.docs.map((doc) => {
       const data = doc.data();
       delete data.scanLeaseId; delete data.scanLeaseUntil;
-      if (scope !== 'admin') { delete data.internalNotes; delete data.assignedTo; delete data.ownerUid; delete data.ownerEmail; delete data.scanHashes; }
+      if (scope !== 'admin') { delete data.internalNotes; delete data.assignedTo; delete data.ownerUid; delete data.ownerEmail; delete data.scanHashes; delete data.sampleHashes; }
       return data;
     });
     return json({ requests });
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     const snap = await requestRef.get(), record = snap.data();
     if (!record || record.ownerUid !== identity.uid) throw new ApiInputError('Request not found.', 404);
     if (record.status !== 'Uploading') return json({ requestId, status: record.status });
-    // A server lease serializes scans and prevents concurrent retries from multiplying scanner load.
+    // A server lease serializes sample validation and prevents concurrent finalization.
     const leaseId = randomUUID();
     await db.runTransaction(async (tx) => {
       const current = (await tx.get(requestRef)).data()!;
@@ -89,13 +89,12 @@ export async function POST(req: NextRequest) {
         // Read the exact immutable generation checked above. Client updates/deletes are denied.
         const [bytes] = await getAdminBucket().file(sample.path, { generation: metadata.generation }).download();
         validateSampleBytes(bytes, sample.contentType);
-        await scanSample(bytes);
         hashes[sample.id] = createHash('sha256').update(bytes).digest('hex');
       }
       await db.runTransaction(async (tx) => {
         const current = (await tx.get(requestRef)).data()!;
         if (current.status !== 'Uploading' || current.scanLeaseId !== leaseId) throw new ApiInputError('Verification expired. Please retry.', 409);
-        tx.update(requestRef, { status: 'Submitted', scanStatus: 'Clean', scanHashes: hashes, updatedAt: new Date().toISOString(), scanLeaseUntil: 0 });
+        tx.update(requestRef, { status: 'Submitted', verificationStatus: 'Validated', sampleHashes: hashes, updatedAt: new Date().toISOString(), scanLeaseUntil: 0 });
       });
       return json({ requestId, status: 'Submitted' });
     } finally {
