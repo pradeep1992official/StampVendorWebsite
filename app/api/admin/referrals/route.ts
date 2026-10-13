@@ -1,3 +1,4 @@
+import { readJsonObject, inputErrorStatus, ApiInputError } from '@/lib/api-input';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb, verifyFirebaseIdToken } from '@/lib/firebase-admin';
 import { ADMIN_EMAILS } from '@/src/config/admin';
@@ -6,7 +7,7 @@ import { isValidReferralRewardAmount } from '@/lib/referral-utils';
 
 async function requireAdmin(request: NextRequest) {
   const idToken = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
-  if (!idToken) return null;
+  if (!idToken) throw new ApiInputError('Sign in is required.', 401);
 
   const user = await verifyFirebaseIdToken(idToken);
   const email = user.email?.toLowerCase();
@@ -37,6 +38,8 @@ export async function GET(request: NextRequest) {
       ),
     });
   } catch (error) {
+    const status = inputErrorStatus(error);
+    if (status) return NextResponse.json({ error: status === 401 ? 'Sign in again to continue.' : (error as Error).message }, { status });
     console.error('Could not load referral administration settings:', error);
     return NextResponse.json({ error: 'Could not load referral settings.' }, { status: 500 });
   }
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Administrator access is required.' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = await readJsonObject(request);
     if (!isValidReferralRewardAmount(body?.rewardAmount)) {
       return NextResponse.json({
         error: 'Reward amount must be a whole-number value from ₹0 to ₹100,000.',
@@ -64,6 +67,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ saved: true, rewardAmount: body.rewardAmount });
   } catch (error) {
+    const status = inputErrorStatus(error);
+    if (status) return NextResponse.json({ error: status === 401 ? 'Sign in again to continue.' : (error as Error).message }, { status });
     console.error('Could not save referral reward settings:', error);
     return NextResponse.json({ error: 'Could not save referral reward amount.' }, { status: 500 });
   }

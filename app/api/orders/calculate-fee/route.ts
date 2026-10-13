@@ -1,5 +1,6 @@
+import { readJsonObject, inputErrorStatus, ApiInputError } from '@/lib/api-input';
 import { NextRequest, NextResponse } from 'next/server';
-import { getPricingConfig } from '@/lib/pricing-service';
+import { getServerPricing } from '@/lib/server-pricing';
 import { calculateOrderPrice } from '@/src/config/pricing';
 
 export interface FeeCalculationRequest {
@@ -29,15 +30,16 @@ export interface FeeBreakdownResponse {
 
 export async function POST(req: NextRequest) {
   try {
-    const body: FeeCalculationRequest = await req.json();
+    const body: FeeCalculationRequest = await readJsonObject(req);
     const { 
       stampPaperDenomination = 100, 
       deliveryLocation = 'Within Chennai', 
       includeNotary = false 
     } = body;
 
+    if (![100, 200].includes(stampPaperDenomination) || !['Within Chennai', 'Within Tamil Nadu'].includes(deliveryLocation) || typeof includeNotary !== 'boolean') throw new ApiInputError('Invalid package options.');
     // Load active pricing config from Firestore (or defaults)
-    const pricing = await getPricingConfig();
+    const pricing = await getServerPricing();
 
     const priceBreakdown = calculateOrderPrice(
       pricing,
@@ -70,6 +72,8 @@ export async function POST(req: NextRequest) {
       description: priceBreakdown.description,
     });
   } catch (error) {
+    const status = inputErrorStatus(error);
+    if (status) return NextResponse.json({ error: status === 401 ? 'Sign in again to continue.' : (error as Error).message }, { status });
     console.error('Fee calculation error:', error);
     return NextResponse.json(
       { error: 'Failed to calculate fee breakdown.' },

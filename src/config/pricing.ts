@@ -23,8 +23,8 @@ export const DEFAULT_PRICING: PricingConfig = {
 
 export const MAX_PRICING_AMOUNT = Math.floor(Number.MAX_SAFE_INTEGER / 200);
 const PRICING_MINIMUMS = {
-  stamp100Chennai: 100, stamp100TamilNadu: 100,
-  stamp200Chennai: 200, stamp200TamilNadu: 200, notaryExtraFee: 0,
+  stamp100Chennai: 150, stamp100TamilNadu: 200,
+  stamp200Chennai: 250, stamp200TamilNadu: 300, notaryExtraFee: 0,
 } as const;
 
 export function validatePricingConfig(value: unknown): asserts value is PricingConfig {

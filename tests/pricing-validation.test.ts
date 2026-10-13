@@ -29,19 +29,19 @@ test('Missing saved prices use defaults while explicitly invalid saved prices fa
   assert.equal(pricing.calculateOrderPrice(pricing.DEFAULT_PRICING, 200, 'Within Tamil Nadu', true).totalPayable, 700);
 });
 
-function service(saved: Record<string, unknown>, writes: unknown[]) {
+function service(saved: Record<string, unknown>, writes: unknown[], readFails = false) {
   const require = createRequire(import.meta.url);
   const ts = require('typescript');
   const source = readFileSync(new URL('../lib/pricing-service.ts', import.meta.url), 'utf8');
   const modules: Record<string, unknown> = {
     './firebase': { db: {} }, '@/src/config/pricing': pricing,
     'firebase/firestore': {
-      doc: () => ({}), getDoc: async () => ({ exists: () => true, data: () => saved }),
+      doc: () => ({}), getDoc: async () => { if (readFails) throw new Error('Network failure'); return { exists: () => true, data: () => saved }; },
       setDoc: async (_ref: unknown, data: unknown) => { writes.push(data); },
     },
   };
   const target = { exports: {} as { getPricingConfig: () => Promise<pricing.PricingConfig>; savePricingConfig: (config: unknown, email: string) => Promise<void> } };
-  runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
+  runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2017 } }).outputText, {
     module: target, exports: target.exports, Date, console,
     require: (name: string) => { if (!(name in modules)) throw new Error(`Unexpected dependency: ${name}`); return modules[name]; },
   });
@@ -80,7 +80,28 @@ test('Firestore rules reject invalid pricing even for direct admin writes', () =
   const source = readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8');
   assert.match(source, /amount is int && amount >= minimum/);
   assert.match(source, /settingId != 'pricing' \|\| isValidPricing\(request\.resource\.data\)/);
-  assert.match(source, /isValidPrice\(data\.stamp100Chennai, 100\)/);
-  assert.match(source, /isValidPrice\(data\.stamp200TamilNadu, 200\)/);
+  assert.match(source, /isValidPrice\(data\.stamp100Chennai, 150\)/);
+  assert.match(source, /isValidPrice\(data\.stamp200TamilNadu, 300\)/);
   assert.match(source, /isValidPrice\(data\.notaryExtraFee, 0\)/);
+});
+
+
+test('Minimum valid packages cover stamp duty and courier and every breakdown sums correctly', () => {
+  const minimum = { stamp100Chennai: 150, stamp100TamilNadu: 200, stamp200Chennai: 250, stamp200TamilNadu: 300, notaryExtraFee: 0 };
+  for (const denomination of [100, 200] as const) {
+    for (const location of ['Within Chennai', 'Within Tamil Nadu'] as const) {
+      const result = pricing.calculateOrderPrice(minimum, denomination, location, false);
+      const courier = location === 'Within Chennai' ? 50 : 100;
+      const serviceFee = result.basePackagePrice - denomination - courier;
+      assert.ok(serviceFee >= 0);
+      assert.equal(denomination + courier + serviceFee + result.notaryFee, result.totalPayable);
+    }
+  }
+  for (const [key, value] of Object.entries(minimum).filter(([key]) => key !== 'notaryExtraFee')) {
+    assert.throws(() => pricing.validatePricingConfig({ ...minimum, [key]: value - 1 }));
+  }
+});
+
+test('Pricing read failures cannot present a confirmed default price', async () => {
+  await assert.rejects(service({}, [], true).getPricingConfig(), /Network failure/);
 });

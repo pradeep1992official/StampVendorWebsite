@@ -1,3 +1,5 @@
+import { validateAgreement } from '@/lib/agreement-validation';
+import { readJsonObject, inputErrorStatus, validDocumentId } from '@/lib/api-input';
 import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateOrderPrice, resolvePricingConfig } from '@/src/config/pricing';
@@ -14,9 +16,9 @@ export async function POST(req: NextRequest) {
     const idToken = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
     if (!idToken) return NextResponse.json({ error: 'Sign in is required to pay.' }, { status: 401 });
     const decoded = await verifyFirebaseIdToken(idToken);
-    const body = await req.json();
+    const body = await readJsonObject(req);
     const orderId = typeof body?.orderId === 'string' ? body.orderId.trim() : '';
-    if (!/^[A-Za-z0-9_-]+$/.test(orderId)) return NextResponse.json({ error: 'A valid order reference is required.' }, { status: 400 });
+    if (!validDocumentId(orderId)) return NextResponse.json({ error: 'A valid order reference is required.' }, { status: 400 });
     let appUrl: URL;
     try {
       appUrl = new URL((process.env.NODE_ENV === 'production' ? process.env.APP_URL?.trim() : undefined) || req.nextUrl.origin);
@@ -40,6 +42,7 @@ export async function POST(req: NextRequest) {
     // Read again under the distributed lock, rather than using the pre-lock snapshot.
     order = (await orderRef.get()).data()!;
     if (order.payment?.gateway === 'ReferralCredit' && order.payment?.reservationKey && order.payment?.status === 'Pending') {
+      validateAgreement(order);
       await confirmPaidOrderAndGrantReferral(orderId, { reservationKey: order.payment.reservationKey, paymentUpdates: {
         'payment.referralCreditApplied': order.payment.referralCreditApplied,
         'payment.amount': 0,
@@ -54,6 +57,7 @@ export async function POST(req: NextRequest) {
     if (previousMerchantOrderId && !previousAttempt) {
       return NextResponse.json({ error: 'This older payment attempt needs vendor verification before another checkout can start. Please contact support.' }, { status: 409 });
     }
+    validateAgreement({ ...order, ...selectCheckoutDetails(body.orderDetails ?? {}) });
     const requested = body?.creditAmount ?? previousAttempt?.creditApplied ?? 0;
     if (!Number.isSafeInteger(requested) || requested < 0) return NextResponse.json({ error: 'Referral credit must be a non-negative whole number.' }, { status: 400 });
     let details: Record<string, unknown> = {};
@@ -81,11 +85,21 @@ export async function POST(req: NextRequest) {
         if (checkoutDetailsChanged(order, details) || requested !== previousAttempt.creditApplied) {
           return NextResponse.json({ error: 'The existing checkout is still pending. Finish it or wait for confirmed expiry before changing the order or credits.' }, { status: 409 });
         }
+        if (body.reviewedTotal !== previousAttempt.amount + previousAttempt.creditApplied) return NextResponse.json({ error: 'Review the payable total before continuing.', quoteRequired: true, reviewedTotal: previousAttempt.amount + previousAttempt.creditApplied, creditApplied: previousAttempt.creditApplied, amountDue: previousAttempt.amount }, { status: 409 });
         if (!previousAttempt.redirectUrl) return NextResponse.json({ error: 'Checkout is being verified. Please retry shortly; another charge has not been started.' }, { status: 409 });
         return NextResponse.json({ available: true, redirectUrl: previousAttempt.redirectUrl, merchantOrderId: previousMerchantOrderId, initiatedAt: previousAttempt.initiatedAt, creditApplied: previousAttempt.creditApplied, amountDue: previousAttempt.amount });
       }
     }
-    // Save the exact reviewed details before calculating the next checkout amount.
+    const pricingData = (await db.collection('settings').doc('pricing').get()).data() ?? {};
+    let pricing;
+    try { pricing = resolvePricingConfig(pricingData); }
+    catch { return NextResponse.json({ error: 'The pricing configuration is invalid. Contact support.' }, { status: 503 }); }
+    const terms = (details.agreementTerms ?? order.agreementTerms ?? {}) as Record<string, unknown>;
+    const price = calculateOrderPrice(pricing, terms.stampPaperDenomination === 200 ? 200 : 100, terms.deliveryLocation === 'Within Tamil Nadu' ? 'Within Tamil Nadu' : 'Within Chennai', Boolean(terms.includeNotary));
+    if (!Number.isSafeInteger(price.totalPayable) || price.totalPayable <= 0) return NextResponse.json({ error: 'The pricing configuration is invalid. Contact support.' }, { status: 503 });
+    if (requested > price.totalPayable) return NextResponse.json({ error: 'Referral credit cannot exceed the order total.' }, { status: 409 });
+    if (body.reviewedTotal !== price.totalPayable) return NextResponse.json({ error: 'Review the payable total before continuing.', quoteRequired: true, reviewedTotal: price.totalPayable, creditApplied: requested, amountDue: price.totalPayable - requested }, { status: 409 });
+    // Save validated details only after the customer has reviewed this exact amount.
     if (Object.keys(details).length) {
       await db.runTransaction(async (tx) => {
         const current = await tx.get(orderRef);
@@ -95,14 +109,6 @@ export async function POST(req: NextRequest) {
       });
       order = { ...order, ...details };
     }
-    const pricingData = (await db.collection('settings').doc('pricing').get()).data() ?? {};
-    let pricing;
-    try { pricing = resolvePricingConfig(pricingData); }
-    catch { return NextResponse.json({ error: 'The pricing configuration is invalid. Contact support.' }, { status: 503 }); }
-    const terms = order.agreementTerms ?? {};
-    const price = calculateOrderPrice(pricing, terms.stampPaperDenomination === 200 ? 200 : 100, terms.deliveryLocation === 'Within Tamil Nadu' ? 'Within Tamil Nadu' : 'Within Chennai', Boolean(terms.includeNotary));
-    if (!Number.isSafeInteger(price.totalPayable) || price.totalPayable <= 0) return NextResponse.json({ error: 'The pricing configuration is invalid. Contact support.' }, { status: 503 });
-    if (requested > price.totalPayable) return NextResponse.json({ error: 'Referral credit cannot exceed the order total.' }, { status: 409 });
     const amountDue = price.totalPayable - requested;
     if (amountDue > 0 && !credentials) return NextResponse.json({ available: false, error: 'Online payment is not configured. Your order is saved.' }, { status: 503 });
     const merchantOrderId = `TN${randomUUID().replace(/-/g, '')}`;
@@ -148,6 +154,8 @@ export async function POST(req: NextRequest) {
     if (latest.payment?.status === 'Failed') return NextResponse.json({ error: 'Checkout failed. Please retry.' }, { status: 409 });
     return NextResponse.json({ available: true, redirectUrl: checkoutUrl, merchantOrderId, initiatedAt, creditApplied: requested, amountDue });
   } catch (error) {
+    const status = inputErrorStatus(error);
+    if (status) return NextResponse.json({ error: status === 401 ? 'Sign in again to continue.' : (error as Error).message }, { status });
     console.error('PhonePe checkout initialization error:', error);
     return NextResponse.json({ error: 'Unable to initialize checkout. Retry to verify the existing attempt.' }, { status: 500 });
   } finally {

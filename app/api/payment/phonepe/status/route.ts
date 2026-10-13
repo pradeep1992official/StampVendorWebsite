@@ -1,3 +1,4 @@
+import { readJsonObject, inputErrorStatus, validDocumentId } from '@/lib/api-input';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb, verifyFirebaseIdToken } from '@/lib/firebase-admin';
 import { fetchPhonePeOrderStatus, getPhonePeAccessToken, getPhonePeCredentials } from '@/lib/phonepe';
@@ -10,12 +11,13 @@ export async function POST(req: NextRequest) {
     if (!idToken) return NextResponse.json({ error: 'Sign in is required.' }, { status: 401 });
 
     const decodedToken = await verifyFirebaseIdToken(idToken);
-    const body = await req.json();
+    const body = await readJsonObject(req);
     const orderId = typeof body?.orderId === 'string' ? body.orderId.trim() : '';
     const requestedMerchantOrderId =
       typeof body?.merchantOrderId === 'string' ? body.merchantOrderId.trim() : '';
-    if (!orderId) return NextResponse.json({ error: 'A valid order reference is required.' }, { status: 400 });
+    if (!validDocumentId(orderId)) return NextResponse.json({ error: 'A valid order reference is required.' }, { status: 400 });
 
+    if (requestedMerchantOrderId && !validDocumentId(requestedMerchantOrderId)) return NextResponse.json({ error: 'Invalid payment reference.' }, { status: 400 });
     const db = getAdminDb();
     const orderRef = db.collection('orders').doc(orderId);
     const orderSnap = await orderRef.get();
@@ -65,6 +67,8 @@ export async function POST(req: NextRequest) {
       initiatedAt,
     });
   } catch (error) {
+    const status = inputErrorStatus(error);
+    if (status) return NextResponse.json({ error: status === 401 ? 'Sign in again to continue.' : (error as Error).message }, { status });
     console.error('PhonePe status verification error:', error);
     return NextResponse.json({ error: 'Unable to verify payment right now.' }, { status: 500 });
   }

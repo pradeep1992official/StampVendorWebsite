@@ -29,7 +29,7 @@ interface ReviewStepProps {
   referralCode: string;
   onReferralCodeChange: (code: string) => void;
   onEditStep: (stepNumber: number) => void;
-  onSubmitOrder: (referralCode: string, creditAmount: number) => Promise<void>;
+  onSubmitOrder: (referralCode: string, creditAmount: number, reviewedTotal: number) => Promise<void>;
   submitting: boolean;
   submissionError: string | null;
   paymentPending: boolean;
@@ -70,6 +70,7 @@ interface FeeState {
   paymentAllowed: boolean;
   description?: string;
   error?: string;
+  quoteKey?: string;
 }
 
 export const ReviewStep: React.FC<ReviewStepProps> = ({
@@ -97,6 +98,8 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
   const [phonePeSdkReady, setPhonePeSdkReady] = useState(false);
   const [phonePeSdkError, setPhonePeSdkError] = useState<string | null>(null);
   const checkoutAttemptRef = useRef<string | null>(null);
+  const [feeReload, setFeeReload] = useState(0);
+  const quoteKey = JSON.stringify([termsData.stampPaperDenomination, termsData.deliveryLocation, termsData.includeNotary, submissionError, feeReload]);
   const [feeState, setFeeState] = useState<FeeState>({
     loading: true,
     feesConfigured: false,
@@ -140,6 +143,9 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
   useEffect(() => {
     let isMounted = true;
     async function fetchFeeBreakdown() {
+      await Promise.resolve();
+      if (!isMounted) return;
+      setFeeState((prev) => ({ ...prev, loading: true, paymentAllowed: false, feesConfigured: false, error: undefined }));
       try {
         const res = await fetch('/api/orders/calculate-fee', {
           method: 'POST',
@@ -159,6 +165,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
         if (isMounted) {
           setFeeState({
             loading: false,
+            quoteKey,
             feesConfigured: data.feesConfigured,
             stampDuty: data.stampDuty,
             serviceFee: data.serviceFee,
@@ -179,6 +186,8 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
           setFeeState((prev) => ({
             ...prev,
             loading: false,
+            paymentAllowed: false,
+            feesConfigured: false,
             error: 'Failed to retrieve server fee schedule.',
           }));
         }
@@ -190,6 +199,7 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
       isMounted = false;
     };
   }, [
+    quoteKey,
     termsData.monthlyRent, 
     termsData.securityDeposit, 
     termsData.tenureMonths,
@@ -569,6 +579,13 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
           </div>
         )}
 
+        {feeState.error && (
+          <div role="alert" className="rounded-xl border border-stone-300 bg-white p-4 text-sm text-stone-800">
+            <p>Pricing could not be loaded. Please try again before paying.</p>
+            <button type="button" onClick={() => setFeeReload((value) => value + 1)} className="mt-2 font-semibold text-brand-700 underline">Retry pricing</button>
+          </div>
+        )}
+
         {phonePeCheckout && phonePeSdkError && (
           <div className="space-y-2 rounded-xl border border-amber-700 bg-stone-800 p-4 text-xs text-stone-200" role="status">
             <p>{phonePeSdkError}</p>
@@ -588,8 +605,8 @@ export const ReviewStep: React.FC<ReviewStepProps> = ({
         <div className="pt-2">
           <button
             type="button"
-            disabled={submitting || (Boolean(phonePeCheckout) && !phonePeSdkError)}
-            onClick={() => void onSubmitOrder(referralCode, Number(creditAmount || 0))}
+            disabled={submitting || feeState.loading || feeState.quoteKey !== quoteKey || !feeState.paymentAllowed || Boolean(feeState.error) || (Boolean(phonePeCheckout) && !phonePeSdkError)}
+            onClick={() => void onSubmitOrder(referralCode, Number(creditAmount || 0), feeState.totalPayable ?? 0)}
             className="w-full bg-amber-500 hover:bg-amber-400 disabled:bg-stone-600 text-stone-950 font-bold py-3.5 px-6 rounded-xl text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
           >
             {submitting ? (

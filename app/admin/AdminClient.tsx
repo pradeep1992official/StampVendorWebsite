@@ -42,7 +42,7 @@ import {
 } from 'firebase/firestore';
 import { Order, OrderStatus } from '@/lib/types';
 import { checkIsAdmin } from '@/lib/order-service';
-import { ADMIN_EMAIL, ADMIN_EMAILS, isUserAdmin } from '@/src/config/admin';
+import { ADMIN_EMAIL, isUserAdmin } from '@/src/config/admin';
 import { RentalAgreementDocument } from '@/components/agreement/RentalAgreementDocument';
 import { DEFAULT_PRICING, PricingConfig } from '@/src/config/pricing';
 import { getPricingConfig, savePricingConfig } from '@/lib/pricing-service';
@@ -615,14 +615,6 @@ export function AdminClient() {
             <h1 className="text-2xl font-black text-stone-900 tracking-tight pt-2">
               Vendor Management Desk
             </h1>
-            <p className="text-xs text-stone-600 leading-relaxed">
-              This area is restricted to authorized stamp vendor administrators ({ADMIN_EMAILS.map((e, idx) => (
-                <span key={e}>
-                  {idx > 0 && ', '}
-                  <code className="font-mono bg-stone-100 px-1.5 py-0.5 rounded text-[11px] text-stone-800 font-semibold">{e}</code>
-                </span>
-              ))}).
-            </p>
           </div>
 
           {(authError || localSignInError) && (
@@ -656,7 +648,7 @@ export function AdminClient() {
                 Currently signed in as: <strong>{user.email}</strong>
               </p>
               <p className="text-stone-500 text-[11px] leading-relaxed">
-                Your account ({user.email}) is not recognized as an authorized vendor administrator. Allowed emails: {ADMIN_EMAILS.join(', ')}.
+                Your account is not authorized to access this administrator area.
               </p>
             </div>
           )}

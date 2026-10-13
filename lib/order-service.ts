@@ -1,3 +1,4 @@
+import { validateAgreement } from '@/lib/agreement-validation';
 import { 
   doc, 
   setDoc, 
@@ -70,6 +71,7 @@ export async function createOrder(
 ): Promise<string> {
   const path = `orders/${orderPayload.orderId}`;
   try {
+    validateAgreement(orderPayload);
     const orderDoc: Order = {
       ...orderPayload,
       status: 'Submitted',

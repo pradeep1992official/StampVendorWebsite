@@ -1,5 +1,7 @@
 'use client';
 
+import { requestReviewedCheckout } from '@/lib/checkout-client';
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
@@ -109,14 +111,7 @@ export function MyOrdersClient() {
 
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('/api/payment/phonepe/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ orderId }),
-      });
+      const response = await requestReviewedCheckout({ orderId }, idToken);
       const result = await response.json();
       if (response.ok && result.paid) {
         setOrders((previous) => previous.map((order) => order.orderId === orderId ? result.order as Order : order));

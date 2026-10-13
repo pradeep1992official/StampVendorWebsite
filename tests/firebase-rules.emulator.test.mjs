@@ -63,9 +63,10 @@ test('private payment attempts, locks and referral records deny even client admi
 test('actual pricing rules enforce minimums, whole numbers, maximum and admin access', async () => {
   const pricing = { stamp100Chennai: 350, stamp100TamilNadu: 400, stamp200Chennai: 450, stamp200TamilNadu: 500, notaryExtraFee: 0 };
   await assertSucceeds(setDoc(doc(admin(), 'settings/pricing'), pricing));
+  await assertSucceeds(setDoc(doc(admin(), 'settings/pricing'), { stamp100Chennai: 150, stamp100TamilNadu: 200, stamp200Chennai: 250, stamp200TamilNadu: 300, notaryExtraFee: 0 }));
   await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(), 'settings/pricing')));
   await assertFails(setDoc(doc(db(), 'settings/pricing'), pricing));
-  for (const value of [-1, 0, 99, 100.5, '350', null, 45035996273705]) {
+  for (const value of [-1, 0, 99, 100, 149, 150.5, '350', null, 45035996273705]) {
     await assertFails(setDoc(doc(admin(), 'settings/pricing'), { ...pricing, stamp100Chennai: value }));
   }
   await assertFails(setDoc(doc(admin(), 'settings/pricing'), { ...pricing, stamp200Chennai: 199 }));
@@ -96,3 +97,11 @@ test('draft file writes reject unsupported types, oversized content and foreign 
   await assertFails(uploadBytes(ref(storage, 'drafts/customer/large.pdf'), new Uint8Array(5 * 1024 * 1024 + 1), { contentType: 'application/pdf' }));
   await assertFails(uploadBytes(ref(storage, 'drafts/other/file.pdf'), new Uint8Array([1]), { contentType: 'application/pdf' }));
 });
+
+ test('public enquiry creation and client limiter access are denied', async () => {
+   for (const client of [env.unauthenticatedContext().firestore(), db()]) {
+     await assertFails(setDoc(doc(client, 'enquiries/spam'), { enquiryId: 'spam', name: 'Spam', phone: '9876543210', district: 'Chennai', message: 'Bypass attempt', status: 'New', createdAt: 'now' }));
+     await assertFails(setDoc(doc(client, 'enquiryLimits/global'), { minute: 1, count: 0 }));
+     await assertFails(getDoc(doc(client, 'enquiryLimits/global')));
+   }
+ });

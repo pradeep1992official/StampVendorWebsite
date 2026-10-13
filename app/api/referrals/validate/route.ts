@@ -1,3 +1,4 @@
+import { readJsonObject, inputErrorStatus } from '@/lib/api-input';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb, verifyFirebaseIdToken } from '@/lib/firebase-admin';
 import { normalizeReferralCode, isValidReferralCode } from '@/lib/referral-utils';
@@ -8,7 +9,7 @@ export async function POST(request: NextRequest) {
     if (!idToken) return NextResponse.json({ error: 'Sign in before applying a referral code.' }, { status: 401 });
 
     const { uid } = await verifyFirebaseIdToken(idToken);
-    const body = await request.json();
+    const body = await readJsonObject(request);
     const code = normalizeReferralCode(body?.code);
     if (!isValidReferralCode(code)) {
       return NextResponse.json({ valid: false, error: 'Enter a valid referral code.' }, { status: 400 });
@@ -40,6 +41,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ valid: true });
   } catch (error) {
+    const status = inputErrorStatus(error);
+    if (status) return NextResponse.json({ error: status === 401 ? 'Sign in again to continue.' : (error as Error).message }, { status });
     console.error('Referral code validation failed:', error);
     return NextResponse.json({ error: 'Could not validate that referral code right now.' }, { status: 500 });
   }

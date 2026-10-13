@@ -1,3 +1,4 @@
+import { readJsonObject, inputErrorStatus } from '@/lib/api-input';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb, verifyFirebaseIdToken } from '@/lib/firebase-admin';
 import { getOrCreateReferralAccount, getReferralRewardAmount } from '@/lib/referral-admin';
@@ -48,6 +49,8 @@ export async function GET(request: NextRequest) {
       ledger,
     });
   } catch (error) {
+    const status = inputErrorStatus(error);
+    if (status) return NextResponse.json({ error: status === 401 ? 'Sign in again to continue.' : (error as Error).message }, { status });
     console.error('Could not load customer referral account:', error);
     return NextResponse.json({ error: 'Could not load referral credits right now.' }, { status: 500 });
   }

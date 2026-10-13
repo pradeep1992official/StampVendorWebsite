@@ -6,20 +6,11 @@ const PRICING_DOC_PATH = 'settings/pricing';
 
 /**
  * Fetches the active pricing configuration from Firestore.
- * Falls back to DEFAULT_PRICING if document does not exist or network fails.
+ * Falls back to DEFAULT_PRICING only if the document does not exist; read failures propagate.
  */
 export async function getPricingConfig(): Promise<PricingConfig> {
-  let data: Record<string, unknown> = {};
-  try {
-    const docRef = doc(db, 'settings', 'pricing');
-    const snap = await getDoc(docRef);
-    if (snap.exists()) {
-      data = snap.data();
-    }
-  } catch (err) {
-    console.warn('Could not read pricing from Firestore, falling back to defaults:', err);
-  }
-  return resolvePricingConfig(data);
+  const snap = await getDoc(doc(db, 'settings', 'pricing'));
+  return resolvePricingConfig(snap.exists() ? snap.data() : {});
 }
 
 /**

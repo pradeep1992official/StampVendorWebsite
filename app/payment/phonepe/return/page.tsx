@@ -1,5 +1,7 @@
 'use client';
 
+import { requestReviewedCheckout } from '@/lib/checkout-client';
+
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -71,14 +73,7 @@ function PhonePeReturnContent() {
     setStartingCheckout(true);
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('/api/payment/phonepe/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ orderId }),
-      });
+      const response = await requestReviewedCheckout({ orderId }, idToken);
       const data = await response.json();
       if (response.ok && data.paid) {
         setResult('paid');

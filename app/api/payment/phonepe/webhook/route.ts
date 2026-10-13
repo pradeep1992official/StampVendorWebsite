@@ -1,3 +1,4 @@
+import { readJsonObject, inputErrorStatus } from '@/lib/api-input';
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase-admin';
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid webhook credentials.' }, { status: 401 });
     }
 
-    const eventBody = await req.json();
+    const eventBody = await readJsonObject(req);
     if (eventBody.event !== 'checkout.order.completed' && eventBody.event !== 'checkout.order.failed') {
       return NextResponse.json({ status: 'ignored' });
     }
@@ -68,6 +69,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ status: 'success' });
   } catch (error) {
+    const status = inputErrorStatus(error);
+    if (status) return NextResponse.json({ error: status === 401 ? 'Sign in again to continue.' : (error as Error).message }, { status });
     console.error('PhonePe webhook processing error:', error);
     return NextResponse.json({ error: 'PhonePe webhook handling failed.' }, { status: 500 });
   }

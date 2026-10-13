@@ -131,7 +131,7 @@ Document-upload controls are disabled because this service does not collect file
 
 PhonePe is the active payment integration. The unused legacy `/api/payment/create-order` and `/api/payment/webhook` endpoints return HTTP 410 and cannot create gateway orders or modify payments. Historical payment type fields remain for compatibility with existing records.
 
-Pricing is validated before saving, when reading saved settings, during fee calculation, and at checkout. The four package prices must be whole rupees and at least their stamp face value (100 or 200); the optional notary surcharge may be zero. Non-finite, fractional, negative and unsafe amounts are rejected. Firestore rules enforce the same constraints on direct writes to `settings/pricing`. Deploy both the Firestore and Storage rule changes with the application.
+Pricing is validated before saving, when reading saved settings, during fee calculation, and at checkout. The four package prices must be whole rupees and cover stamp duty plus courier: minimums are Rs.150/Rs.200 for Rs.100 stamp paper in Chennai/Tamil Nadu and Rs.250/Rs.300 for Rs.200 stamp paper; the optional notary surcharge may be zero. Non-finite, fractional, negative and unsafe amounts are rejected. Firestore rules enforce the same constraints on direct writes to `settings/pricing`. Deploy both the Firestore and Storage rule changes with the application.
 
 ## Project structure
 
@@ -238,3 +238,18 @@ Ask AI tools to preserve the existing Next.js architecture, routes, authenticati
 ## Documentation status
 
 This README was prepared from the GitHub repository and the supplied AI Studio migration report. Migration changes may not yet be committed to GitHub. Application checks were not executed as part of preparing this documentation.
+
+
+## October 2026 recheck fixes
+
+- Enquiries now use the server Admin SDK. Deploy the updated Firestore rules together with the application: client creation of enquiries is denied. The server transaction atomically writes the enquiry and shared counters (3 per phone per hour, 30 total per minute, and a one-minute identical-message guard). The limiter collection is private. Enable Firestore TTL on `enquiryLimits.expiresAt` to clean up expired phone counters; the global counter is one rolling document.
+- Package minimums include fixed courier charges, so the itemized sum cannot exceed the total. Existing admin prices below these minimums need correction before checkout resumes.
+- Pricing read failures no longer produce confirmed default quotes. Checkout requires the exact reviewed total; changed/missing quotes are shown for approval and checked again before payment. Wizard, My Orders, and return-page retries share this flow.
+- Shared agreement validation runs during client order creation, the final wizard submission, and server checkout, before reservations/gateway requests. Malformed JSON and request IDs return 400; invalid/expired tokens return 401.
+- Transitive dependency overrides update gRPC, PostCSS, selector parsing, FTP, UUID and telemetry dependencies. Production audit reports zero vulnerabilities. Seven development-only audit entries remain associated with upstream `braces@3.0.3`, which has no patched release. `npm install`/`npm ci` applies a fail-closed parser depth limit using `scripts/patch-braces.mjs`; tests cover regular expansion and hostile nesting across public string APIs. Do not omit install scripts. Review and remove the temporary mitigation when upstream releases a fixed version. The advisory is not suppressed.
+
+These changes are local until deployed. Public tracking authentication was excluded from the requested fixes and remains an open finding. Live PhonePe sandbox and browser walkthroughs still need release verification.
+
+Validation after these fixes: 60 application/regression tests and 9 Firebase rules emulator tests passed; project lint and TypeScript checks passed. The isolated build uses physical dependencies to validate standalone packaging.
+
+The final isolated production build completed without standalone-copy warnings. Standalone HTTP smoke checks returned 200 for homepage/CSS, 400 for malformed contact/tracking/fee requests, and 401 for an invalid payment-status token.

@@ -16,6 +16,8 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
   showCta = true,
 }) => {
   const [pricing, setPricing] = useState<PricingConfig>(DEFAULT_PRICING);
+  const [pricingReady, setPricingReady] = useState(false);
+  const [pricingError, setPricingError] = useState(false);
   const [stampPaper, setStampPaper] = useState<100 | 200>(100);
   const [location, setLocation] = useState<'Within Chennai' | 'Within Tamil Nadu'>('Within Chennai');
   const [includeNotary, setIncludeNotary] = useState<boolean>(false);
@@ -24,9 +26,9 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
     let isMounted = true;
     getPricingConfig()
       .then((cfg) => {
-        if (isMounted) setPricing(cfg);
+        if (isMounted) { setPricing(cfg); setPricingReady(true); }
       })
-      .catch(() => {});
+      .catch(() => { if (isMounted) setPricingError(true); });
     return () => {
       isMounted = false;
     };
@@ -36,6 +38,12 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
   const stampFaceValue = stampPaper;
   const estimatedCourier = location === 'Within Chennai' ? 50 : 100;
   const draftingFee = Math.max(0, breakdown.basePackagePrice - stampFaceValue - estimatedCourier);
+
+  if (!pricingReady) return (
+    <div className="rounded-3xl border border-stone-200 bg-white p-6 text-sm text-stone-700" role={pricingError ? 'alert' : 'status'}>
+      {pricingError ? 'Pricing is unavailable. Please refresh or try again later.' : 'Loading current pricing?'}
+    </div>
+  );
 
   return (
     <div className="bg-white border border-stone-200/90 rounded-3xl shadow-sm overflow-hidden">
@@ -52,69 +60,74 @@ export const PriceBreakdownCard: React.FC<PriceBreakdownCardProps> = ({
 
       {/* Interactive package options */}
       <div className="p-6 bg-brand-50/40 border-b border-brand-100/80">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <h4 className="text-xs font-bold text-stone-900 uppercase tracking-wider">
             Select Your Package Options
           </h4>
-          <span className="text-[11px] text-brand-800 font-semibold bg-brand-100 px-2 py-0.5 rounded-full">
+          <span className="shrink-0 text-xs text-brand-800 font-semibold bg-brand-100 px-2.5 py-1 rounded-full">
             Live Pricing
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Dropbox 1: Stamp Paper Denomination */}
-          <div>
-            <label htmlFor="card-stampPaper" className="block text-xs font-bold text-stone-700 mb-1">
+          <div className="min-w-0">
+            <label htmlFor="card-stampPaper" className="block text-sm font-bold text-stone-700 mb-2">
               1. Stamp Paper
             </label>
             <select
               id="card-stampPaper"
               value={stampPaper}
               onChange={(e) => setStampPaper(Number(e.target.value) as 100 | 200)}
-              className="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white text-xs font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+              className="h-12 w-full min-w-0 px-3 rounded-xl border border-stone-300 bg-white text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
             >
-              <option value={100}>In Rs.100 Stamp Paper</option>
-              <option value={200}>In Rs.200 Stamp Paper</option>
+              <option value={100}>₹100 Stamp Paper</option>
+              <option value={200}>₹200 Stamp Paper</option>
             </select>
             
           </div>
 
           {/* Dropbox 2: Courier Region */}
-          <div>
-            <label htmlFor="card-deliveryLocation" className="block text-xs font-bold text-stone-700 mb-1">
+          <div className="min-w-0">
+            <label htmlFor="card-deliveryLocation" className="block text-sm font-bold text-stone-700 mb-2">
               2. Courier Destination
             </label>
             <select
               id="card-deliveryLocation"
               value={location}
               onChange={(e) => setLocation(e.target.value as 'Within Chennai' | 'Within Tamil Nadu')}
-              className="w-full px-3 py-2 rounded-xl border border-stone-300 bg-white text-xs font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+              className="h-12 w-full min-w-0 px-3 rounded-xl border border-stone-300 bg-white text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
             >
               <option value="Within Chennai">
-                Within Chennai (₹{stampPaper === 100 ? pricing.stamp100Chennai : pricing.stamp200Chennai}/-)
+                Chennai (₹{stampPaper === 100 ? pricing.stamp100Chennai : pricing.stamp200Chennai}/-)
               </option>
               <option value="Within Tamil Nadu">
-                Within Tamilnadu (₹{stampPaper === 100 ? pricing.stamp100TamilNadu : pricing.stamp200TamilNadu}/-)
+                Tamil Nadu (₹{stampPaper === 100 ? pricing.stamp100TamilNadu : pricing.stamp200TamilNadu}/-)
               </option>
             </select>
           
           </div>
 
           {/* Option 3: Notary Signature */}
-          <div>
-            <label htmlFor="card-notary" className="flex items-center gap-2 text-xs font-bold text-stone-700 mb-1 cursor-pointer">
+          <div className="sm:col-span-2">
+            <label htmlFor="card-notary" className="flex items-start gap-3 rounded-xl border border-stone-300 bg-white p-4 cursor-pointer focus-within:ring-2 focus-within:ring-amber-500">
               <input
                 id="card-notary"
                 type="checkbox"
                 checked={includeNotary}
                 onChange={(e) => setIncludeNotary(e.target.checked)}
-                className="h-4 w-4 shrink-0 rounded border-stone-300 accent-amber-600 focus:ring-2 focus:ring-amber-500"
+                aria-describedby="card-notary-description"
+                className="mt-0.5 h-5 w-5 shrink-0 rounded border-stone-300 accent-amber-600"
               />
-              <span>3. Include Notary Signature (+₹{pricing.notaryExtraFee})</span>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold leading-5 text-stone-700">
+                  3. Include Notary Signature <span className="inline-block whitespace-nowrap">(+₹{pricing.notaryExtraFee})</span>
+                </span>
+                <span id="card-notary-description" className="mt-1 block text-xs leading-5 text-stone-500">
+                  Advocate Notary attestation and seal (Optional)
+                </span>
+              </span>
             </label>
-            <p className="text-[10px] text-stone-500 mt-1 pl-6">
-              {includeNotary ? 'Advocate Notary attestation and seal' :  ' '}
-            </p>
           </div>
         </div>
       </div>

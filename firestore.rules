@@ -51,25 +51,8 @@ service cloud.firestore {
 
     // Contact enquiries
     match /enquiries/{enquiryId} {
-      // Anyone can submit a valid enquiry
-      allow create: if request.resource.data.keys().hasOnly([
-          'enquiryId',
-          'name',
-          'phone',
-          'district',
-          'message',
-          'status',
-          'createdAt'
-        ])
-        && request.resource.data.name is string
-        && request.resource.data.name.size() >= 2
-        && request.resource.data.name.size() <= 100
-        && request.resource.data.phone is string
-        && request.resource.data.phone.size() == 10
-        && request.resource.data.message is string
-        && request.resource.data.message.size() >= 5
-        && request.resource.data.message.size() <= 1000
-        && request.resource.data.status == 'New';
+      // Enquiries are created only by the rate-limited server Admin SDK route.
+      allow create: if false;
 
       // Read, update, and delete reserved exclusively for vendor admin
       allow read, update, delete: if isAdmin();
@@ -152,10 +135,10 @@ service cloud.firestore {
     }
 
     function isValidPricing(data) {
-      return isValidPrice(data.stamp100Chennai, 100)
-        && isValidPrice(data.stamp100TamilNadu, 100)
-        && isValidPrice(data.stamp200Chennai, 200)
-        && isValidPrice(data.stamp200TamilNadu, 200)
+      return isValidPrice(data.stamp100Chennai, 150)
+        && isValidPrice(data.stamp100TamilNadu, 200)
+        && isValidPrice(data.stamp200Chennai, 250)
+        && isValidPrice(data.stamp200TamilNadu, 300)
         && isValidPrice(data.notaryExtraFee, 0);
     }
 

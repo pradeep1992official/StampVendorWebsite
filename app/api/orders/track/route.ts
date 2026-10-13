@@ -1,14 +1,15 @@
+import { readJsonObject, inputErrorStatus, validDocumentId } from '@/lib/api-input';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase-admin';
 
 export async function POST(req: NextRequest) {
   try {
-    const { orderId, phone } = await req.json();
+    const { orderId, phone } = await readJsonObject(req);
 
     const cleanOrderId = typeof orderId === 'string' ? orderId.trim() : '';
     const cleanPhone = typeof phone === 'string' ? phone.replace(/[^0-9]/g, '') : '';
 
-    if (!cleanOrderId) {
+    if (!validDocumentId(cleanOrderId)) {
       return NextResponse.json(
         { success: false, error: 'Please enter a valid Order Reference ID.' },
         { status: 400 }
@@ -67,6 +68,8 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
+    const status = inputErrorStatus(error);
+    if (status) return NextResponse.json({ error: status === 401 ? 'Sign in again to continue.' : (error as Error).message }, { status });
     console.error('Order tracking lookup error:', error);
     return NextResponse.json(
       { success: false, error: 'Unable to track order at this moment.' },

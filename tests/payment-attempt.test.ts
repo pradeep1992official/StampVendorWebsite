@@ -1,3 +1,4 @@
+import * as apiInput from '../lib/api-input.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -26,6 +27,8 @@ function loadRoute(route: string, documents: Record<string, unknown>, calls: { g
     }),
   };
   const modules: Record<string, unknown> = {
+    '@/lib/api-input': apiInput,
+    '@/lib/agreement-validation': {},
     'next/server': { NextResponse: { json: (body: unknown, options?: { status: number }) => ({ body, status: options?.status ?? 200 }) } },
     'firebase-admin/firestore': { FieldValue: {} },
     '@/src/config/pricing': {},
@@ -43,7 +46,7 @@ function loadRoute(route: string, documents: Record<string, unknown>, calls: { g
     },
   };
   const routeModule = { exports: {} as { POST: (req: unknown) => Promise<{ status: number; body: { paid?: boolean } }> } };
-  runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, {
+  runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2017 } }).outputText, {
     module: routeModule, exports: routeModule.exports, require: (name: string) => {
       if (!(name in modules)) throw new Error(`Unexpected dependency: ${name}`);
       return modules[name];

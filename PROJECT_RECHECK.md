@@ -1,5 +1,28 @@
 # Project recheck — 12 October 2026
 
+## Latest full-project review (after removing administrator email lists)
+
+Fresh checks: project-wide ESLint and TypeScript passed; 60 application tests and 9 Firebase rules emulator tests passed; isolated production build passed. Production dependency audit: zero findings. Full dependency audit: seven high development-tool package entries, all associated with the same braces advisory. The existing depth mitigation passes its regression tests; upstream still lists no patched version: https://github.com/advisories/GHSA-vfj7-8cjw-p6xm.
+
+Current findings, superseding the historical findings below:
+
+1. **High: public tracking authorization and data exposure.** `app/api/orders/track/route.ts` accepts an order ID and phone without proof of possession or a secret, returns names/property details/free-text correction messages, distinguishes missing orders from wrong phones, and has no shared limiter. Guest tracking can stay login-free using private random tracking links, limited response fields, generic failures and shared rate limits. That design has been discussed but is not implemented.
+2. **Medium: paid package terms can change during customer corrections.** `firestore.rules` permits replacing `agreementTerms` when status is Documents needed while preserving the payment map. It does not freeze denomination/notary/delivery options for paid orders or validate the corrected agreement. A direct client write can change a paid package to a more expensive one without a new checkout. Restrict financial selections and validate allowed corrections on the server.
+3. **Medium: clarification notes are silently discarded.** `app/my-orders/MyOrdersClient.tsx:92` sends an empty corrections object; the textarea's `correctionNote` is never persisted. The order nevertheless moves to Under verification and shows success. Persist a bounded customer clarification through an authorized path and display it to the vendor; do not report a submitted correction without saving the response.
+4. **Medium: unused Storage upload permissions remain active.** `storage.rules` still lets any authenticated user create JPEG/PNG/PDF files under their own order/draft paths. No existing order is required, and there is no aggregate quota. Removing upload UI/API does not prevent direct Firebase SDK writes. Since this service does not accept documents, deny new client uploads while preserving any historical access that is actually needed.
+5. **Medium: order creation still accepts incomplete records through direct Firestore writes.** `firestore.rules` restricts ownership/payment fields but does not require valid agreement sections. The emulator's accepted creation fixture itself omits those sections. Server checkout validation prevents payment for such records, but malformed unpaid orders can still enter the vendor queue and consume storage. Validate creation through a controlled server path or enforce essential schema/bounds in rules.
+6. **Low: webhook payload validation is incomplete.** `app/api/payment/phonepe/webhook/route.ts:39` allows an unbounded merchant reference before constructing a document path; line 59 dereferences entries in `paymentDetails` without rejecting null elements. An authenticated malformed callback can therefore produce 500 instead of 400. Validate reference length and callback element shapes before database access. This does not bypass webhook authentication or amount checks.
+
+Remaining test gaps: real PhonePe sandbox/return/webhook flows, real server transaction contention and retries, and browser/mobile/accessibility walkthroughs. Existing status/webhook tests are chiefly source assertions rather than complete route-behavior coverage. Deployment configuration and live rules were not inspected. This review changed this report only; application findings above remain open. Passing checks do not prove that every possible defect is absent.
+
+## Fix status after the earlier recheck
+
+Validation: 60 application/regression tests and 9 Firebase rules emulator tests pass. Project-wide ESLint and TypeScript checks pass. Production auditing reports zero vulnerabilities. The final isolated production build and standalone HTTP smoke checks passed without the previous copy warning: homepage/CSS 200, malformed API payloads 400, invalid token 401.
+
+The six requested findings have now been addressed locally: server-only enquiry creation with shared transactional limits, courier-inclusive price minimums, fail-closed pricing and explicit reviewed-total confirmation across payment entry points, shared agreement validation, and 400/401 request/authentication error handling. Production dependency auditing is clean; the remaining seven development-only `braces` audit entries are mitigated by a reproducible parser-depth patch and regression tests, with no upstream fixed release available. They have not been hidden or dismissed.
+
+The original findings below are retained as the pre-fix audit record. Public tracking remains open because it was excluded from this fix request. Deploy updated rules and application together. See README for operational details.
+
 This is a review of the local working tree, including previous security fixes and the latest branding changes. No application code was changed during this recheck. Findings below are distinct from compiler/test failures. This review does not establish the deployed site's configuration or prove the absence of every possible defect.
 
 ## Checks executed

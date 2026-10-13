@@ -28,13 +28,15 @@ export const AgreementTermsStep: React.FC<AgreementTermsStepProps> = ({
 }) => {
   const [pricingConfig, setPricingConfig] = useState<PricingConfig>(DEFAULT_PRICING);
 
+  const [pricingState, setPricingState] = useState<'loading' | 'ready' | 'error'>('loading');
+
   useEffect(() => {
     let isMounted = true;
     getPricingConfig()
       .then((cfg) => {
-        if (isMounted) setPricingConfig(cfg);
+        if (isMounted) { setPricingConfig(cfg); setPricingState('ready'); }
       })
-      .catch(() => {});
+      .catch(() => { if (isMounted) setPricingState('error'); });
     return () => {
       isMounted = false;
     };

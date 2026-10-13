@@ -1,5 +1,9 @@
 'use client';
 
+import { validateAgreement } from '@/lib/agreement-validation';
+
+import { requestReviewedCheckout } from '@/lib/checkout-client';
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { 
@@ -526,7 +530,7 @@ export function OrderIntakeWizard() {
   };
 
   // Final Order Submission
-  const handleSubmitOrder = async (submittedReferralCode: string, creditAmount: number) => {
+  const handleSubmitOrder = async (submittedReferralCode: string, creditAmount: number, reviewedTotal: number) => {
     if (!user || submittingOrder) return;
     setSubmissionError(null);
 
@@ -550,6 +554,7 @@ export function OrderIntakeWizard() {
 
     setSubmittingOrder(true);
     try {
+      validateAgreement({ ownerDetails: ownerData, tenantDetails: tenantData, propertyDetails: propertyData, agreementTerms: termsData });
       const normalizedReferralCode = submittedReferralCode.trim().toUpperCase();
       if (normalizedReferralCode) {
         const idToken = await user.getIdToken();
@@ -587,13 +592,7 @@ export function OrderIntakeWizard() {
       }
 
       const idToken = await user.getIdToken();
-      const paymentResponse = await fetch('/api/payment/phonepe/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ orderId, creditAmount, orderDetails: {
+      const paymentResponse = await requestReviewedCheckout({ orderId, creditAmount, reviewedTotal, orderDetails: {
           customerEmail: user.email || ownerData.email || '',
           customerPhone: ownerData.phone || '',
           ownerDetails: ownerData,
@@ -602,8 +601,7 @@ export function OrderIntakeWizard() {
           agreementTerms: termsData,
           proofUploads: proofData,
           referralCode: normalizedReferralCode,
-        } }),
-      });
+        } }, idToken);
       const paymentResult = await paymentResponse.json();
       if (paymentResult.paid) {
         setConfirmedOrder(paymentResult.order as Order);
