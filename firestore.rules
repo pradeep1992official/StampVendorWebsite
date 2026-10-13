@@ -11,7 +11,7 @@ service cloud.firestore {
       return isSignedIn()
         && (
           request.auth.token.email == "pradeep1992official@gmail.com"
-          || request.auth.token.email == "pradhiip92@gmail.com"
+          || request.auth.token.email == "ntscsc@gmail.com"
         )
         && request.auth.token.email_verified == true;
     }
@@ -50,6 +50,17 @@ service cloud.firestore {
     }
 
     // Contact enquiries
+    // Custom requests (including internal notes) are served by authorized API routes only.
+    match /customAgreementRequests/{requestId} {
+      allow read, write: if false;
+    }
+    match /customAgreementLimits/{limitId} {
+      allow read, write: if false;
+    }
+    match /customAgreementAudit/{logId} {
+      allow read, write: if false;
+    }
+
     match /enquiries/{enquiryId} {
       // Enquiries are created only by the rate-limited server Admin SDK route.
       allow create: if false;

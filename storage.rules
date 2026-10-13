@@ -10,9 +10,26 @@ service firebase.storage {
       return isSignedIn()
         && (
           request.auth.token.email == "pradeep1992official@gmail.com"
-          || request.auth.token.email == "pradhiip92@gmail.com"
+          || request.auth.token.email == "ntscsc@gmail.com"
         )
         && request.auth.token.email_verified == true;
+    }
+
+    // Immutable staging uploads: the server verifies every sample before allowing download.
+    match /custom-agreements/{uid}/{requestId}/{sampleId} {
+      function requestData() {
+        return firestore.get(/databases/(default)/documents/customAgreementRequests/$(requestId)).data;
+      }
+      allow create: if resource == null && isSignedIn() && request.auth.uid == uid
+        && requestData().ownerUid == uid
+        && requestData().status == 'Uploading'
+        && sampleId in requestData().files
+        && request.resource.size == requestData().files[sampleId].size
+        && request.resource.size > 0 && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType == requestData().files[sampleId].contentType
+        && request.resource.contentType.matches('application/pdf|application/vnd.openxmlformats-officedocument.wordprocessingml.document|image/jpeg|image/png')
+        && request.resource.metadata.keys().hasOnly([]);
+      allow read, update, delete: if false;
     }
 
     // Private customer proof documents

@@ -6,10 +6,10 @@ import { SupportEmailLink } from '@/components/SupportEmailLink';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | Data Protection & Aadhaar Masking Policy | TN Stamp Paper',
-  description: 'Read how we protect your submitted agreement details. This service does not accept document uploads.',
+  description: 'Read how we protect agreement details, contact information and custom agreement sample uploads.',
   openGraph: {
     title: 'Privacy Policy | Data Protection & Aadhaar Masking Policy | TN Stamp Paper',
-    description: 'Read how we protect your submitted agreement details. This service does not accept document uploads.',
+    description: 'Read how we protect agreement details, contact information and custom agreement sample uploads.',
   },
 };
 
@@ -34,7 +34,7 @@ export default function PrivacyPolicyPage() {
           <span>Strict Aadhaar Privacy & Masking Commitment</span>
         </div>
         <p className="text-xs sm:text-sm text-emerald-900 leading-relaxed">
-          In strict compliance with statutory UIDAI regulations and data protection guidelines, <strong>we NEVER request or store full 12-digit Aadhaar numbers</strong>. Our ordering forms explicitly restrict and validate user input to the <strong>last 4 digits only</strong> (e.g. XXXX-XXXX-4921) to confirm identity on the drafted tenancy contract.
+          Aadhaar information is optional. Share only the minimum identification details needed for your agreement and avoid entering full Aadhaar numbers. Before uploading custom agreement samples, redact unnecessary Aadhaar, bank and other sensitive information. Sample files may contain the information you choose to share with our drafting team.
         </p>
       </div>
 
@@ -52,7 +52,7 @@ export default function PrivacyPolicyPage() {
             <li>Owner & Tenant full legal names, father/spouse name, age, permanent address, contact number, and email.</li>
             <li>Last 4 digits of Aadhaar number and optional PAN number for tax accounting records.</li>
             <li>Rental property location, survey number/door number, pincode, monthly rent, security deposit, and tenancy dates.</li>
-            <li>Document files are not collected; this service does not accept uploads.</li>
+            <li>For custom agreement requests: sample PDF/DOCX templates or JPG/PNG photos, customisation instructions, preferred language, contact details and contact preference.</li>
           </ul>
         </section>
 
@@ -62,7 +62,7 @@ export default function PrivacyPolicyPage() {
             <span>2. Private Agreement Data</span>
           </h2>
           <p>
-            Agreement drafts and orders are stored with access controls. We do not collect uploaded identity or property documents.
+            Agreement drafts and orders are stored with access controls. Custom agreement samples are uploaded privately and verified before vendor review. Identity or property proof uploads are not part of the standard rental agreement flow.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs">
@@ -75,7 +75,7 @@ export default function PrivacyPolicyPage() {
             </div>
           </div>
           <p className="text-stone-600 pt-1">
-            Enter the required details directly in the order form. No file uploads are required or accepted.
+            Enter standard rental agreement details directly in the order form. Custom agreement requests accept up to three sample files, 10 MB each. Remove unnecessary Aadhaar, bank and other sensitive information before sharing a sample. We use your chosen contact details to clarify your request and communicate the quote; consent to this contact does not include marketing.
           </p>
         </section>
 

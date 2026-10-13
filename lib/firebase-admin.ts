@@ -1,6 +1,7 @@
 import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import firebaseConfig from '@/firebase-applet-config.json';
 
 function getAdminApp() {
@@ -20,6 +21,10 @@ function getAdminApp() {
 
 export function getAdminDb() {
   return getFirestore(getAdminApp(), firebaseConfig.firestoreDatabaseId);
+}
+
+export function getAdminBucket() {
+  return getStorage(getAdminApp()).bucket(firebaseConfig.storageBucket);
 }
 
 export async function verifyFirebaseIdToken(idToken: string) {

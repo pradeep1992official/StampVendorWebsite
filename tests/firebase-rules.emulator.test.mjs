@@ -105,3 +105,34 @@ test('draft file writes reject unsupported types, oversized content and foreign 
      await assertFails(getDoc(doc(client, 'enquiryLimits/global')));
    }
  });
+
+test('custom request records, limits and audit deny all direct client access', async () => {
+  for (const collection of ['customAgreementRequests', 'customAgreementLimits', 'customAgreementAudit']) {
+    await seed(`${collection}/private`, { ownerUid: 'customer', internalNotes: 'Staff only' });
+    for (const client of [db(), db('other'), admin(), env.unauthenticatedContext().firestore()]) {
+      await assertFails(getDoc(doc(client, `${collection}/private`)));
+      await assertFails(setDoc(doc(client, `${collection}/private`), { ownerUid: 'customer' }));
+    }
+  }
+});
+
+test('custom samples require server-reserved ownership, exact metadata, immutable writes and staging status', async () => {
+  const path = 'custom-agreements/customer/CUSTOM_test/sample-1';
+  const reserved = { ownerUid: 'customer', status: 'Uploading', files: { 'sample-1': { size: 3, contentType: 'application/pdf' } } };
+  const owner = env.authenticatedContext('customer').storage();
+  const other = env.authenticatedContext('other').storage();
+  await assertFails(uploadBytes(ref(owner, path), new Uint8Array([1, 2, 3]), { contentType: 'application/pdf' }));
+  await seed('customAgreementRequests/CUSTOM_test', reserved);
+  await assertFails(uploadBytes(ref(other, path), new Uint8Array([1, 2, 3]), { contentType: 'application/pdf' }));
+  await assertFails(uploadBytes(ref(owner, path), new Uint8Array([1, 2]), { contentType: 'application/pdf' }));
+  await assertFails(uploadBytes(ref(owner, path), new Uint8Array([1, 2, 3]), { contentType: 'image/png' }));
+  await assertFails(uploadBytes(ref(owner, path), new Uint8Array([1, 2, 3]), { contentType: 'application/pdf', customMetadata: { arbitrary: 'forged' } }));
+  await assertSucceeds(uploadBytes(ref(owner, path), new Uint8Array([1, 2, 3]), { contentType: 'application/pdf' }));
+  await assertFails(uploadBytes(ref(owner, path), new Uint8Array([1, 2, 3]), { contentType: 'application/pdf' }));
+  await assertFails(getBytes(ref(owner, path)));
+  await assertFails(getBytes(ref(env.authenticatedContext('admin', { email: 'pradhiip92@gmail.com', email_verified: true }).storage(), path)));
+  await assertFails(deleteObject(ref(owner, path)));
+  await env.clearStorage();
+  await seed('customAgreementRequests/CUSTOM_test', { ...reserved, status: 'Submitted' });
+  await assertFails(uploadBytes(ref(owner, path), new Uint8Array([1, 2, 3]), { contentType: 'application/pdf' }));
+});

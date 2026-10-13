@@ -32,6 +32,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { CustomRequests } from '@/components/custom-agreements/CustomRequests';
 import { db } from '@/lib/firebase';
 import { 
   collection, 
@@ -69,7 +70,7 @@ export function AdminClient() {
   const [localSignInError, setLocalSignInError] = useState<string | null>(null);
 
   // Active Admin Console tab
-  const [activeTab, setActiveTab] = useState<'orders' | 'enquiries' | 'pricing' | 'support' | 'couriers' | 'referrals'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'enquiries' | 'pricing' | 'support' | 'couriers' | 'referrals' | 'custom'>('orders');
 
   // Pricing State
   const [pricingConfig, setPricingConfig] = useState<PricingConfig>(DEFAULT_PRICING);
@@ -752,6 +753,7 @@ export function AdminClient() {
             <span>Referral Credits</span>
           </button>
 
+          <button onClick={() => setActiveTab('custom')} className={`rounded-xl px-4 py-2 text-sm font-semibold ${activeTab === 'custom' ? 'bg-stone-900 text-white' : 'bg-white text-stone-700 hover:bg-stone-100'}`}>Custom Requests</button>
           {(activeTab === 'orders' || activeTab === 'enquiries') && (
             <button
               type="button"
@@ -765,7 +767,7 @@ export function AdminClient() {
         </div>
       </div>
 
-      {activeTab === 'enquiries' ? (
+      {activeTab === 'custom' ? <CustomRequests admin /> : activeTab === 'enquiries' ? (
         <section className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-5 animate-in fade-in duration-200">
           <div className="border-b border-stone-200 pb-5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-800 bg-indigo-100 px-2.5 py-0.5 rounded-full">

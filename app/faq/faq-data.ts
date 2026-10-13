@@ -25,12 +25,12 @@ export const faqData: FaqItem[] = [
   {
     category: 'privacy',
     q: 'Is Aadhaar information required, and what should I enter?',
-    a: 'Providing Aadhaar information is optional. Enter only the information requested by the form. This service does not accept document uploads.',
+    a: 'Providing Aadhaar information is optional. Enter only the information requested by the standard rental agreement form. Sample templates and photos are accepted separately for custom agreement requests; remove unnecessary sensitive information first.',
   },
   {
     category: 'privacy',
     q: 'Do I need to upload identity or property documents?',
-    a: 'No. This service collects the details entered in the agreement form and does not accept document uploads.',
+    a: 'No identity or property proof uploads are required for standard rental agreements. Custom agreement requests separately accept PDF/DOCX templates and JPG/PNG sample photos for review.',
   },
   {
     category: 'pricing',

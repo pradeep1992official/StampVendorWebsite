@@ -1,6 +1,6 @@
 # StampVendorWebsite
 
-A web application for stamp vendor services and rental agreement drafting, with customer ordering, fee calculation, order tracking, and an administration interface. Customers enter agreement details; document uploads are not part of this service.
+A web application for stamp vendor services and rental agreement drafting, with customer ordering, fee calculation, order tracking, and an administration interface. Standard rental orders collect entered details. A separate custom agreement service accepts private sample templates/photos for review and manual quotation.
 
 Repository: https://github.com/pradeep1992official/StampVendorWebsite
 
@@ -240,7 +240,24 @@ Ask AI tools to preserve the existing Next.js architecture, routes, authenticati
 This README was prepared from the GitHub repository and the supplied AI Studio migration report. Migration changes may not yet be committed to GitHub. Application checks were not executed as part of preparing this documentation.
 
 
-## October 2026 recheck fixes
+## Custom agreement requests
+
+- `/custom-agreement`: Google sign-in, agreement purpose/language/customisation, contact consent and preference, one to three PDF/DOCX/JPG/PNG samples (10 MB each). No payment at submission.
+- `/my-requests`: private history, customer-visible quotes/messages, clarification replies, cancellation before acceptance and retry of sample verification.
+- Admin **Custom Requests**: review, assignment, private notes, customer messages, quote and expected completion date. Manual contact and quote acceptance; moving Quote Sent to Accepted requires confirmation that the customer accepted. Accepted prices are immutable. No automatic calls, emails or WhatsApp messages are sent.
+- Request creation reserves immutable file descriptors under `customAgreementRequests`. Shared transactions limit each account to five requests/day and the service to 30/minute. Direct Firestore request/audit/limiter access is denied, including client admins. The authorized API strips staff-only fields from customer responses.
+- The browser uploads each sample directly to Firebase Storage, avoiding serverless request-body limits. Storage permits only a reserved, owner-matched staging path with exact size/type; overwrite/read/delete are denied. Finalization downloads the immutable generation, validates file signatures (and bounded DOCX ZIP structure), removes Firebase bearer download tokens, and streams all files to ClamAV. Only successful scans publish the request for review. Scanner failures keep it in Uploading and allow retry; there is no bypass or fake clean result.
+- Configure `CLAMAV_HOST` and optional `CLAMAV_PORT` (3310) on the application server. The host must be reachable over a **private trusted network**, with fresh ClamAV signatures. Configure clamd `StreamMaxLength` above 10 MB, `MaxFileSize` at least 10 MB, `MaxScanSize` at least 50 MB, `MaxRecursion`/`MaxFiles` appropriate for DOCX, and `AlertExceedsMax`, `AlertEncryptedArchive`, `AlertEncryptedDoc`, and `AlertBrokenExecutables` enabled so skipped/opaque files cannot count as clean. Do not expose unauthenticated clamd TCP to the internet. Keep definitions current with freshclam. Missing/unreachable scanner returns 503 and prevents submission for review.
+- Deploy the app, Firestore/Storage rules and `firestore.indexes.json` together. `firebase.json` contains the production rule/index paths; always supply the intended project explicitly, e.g. `firebase deploy --only firestore,storage --project CLIENT_PROJECT_ID`. This command is documentation only; no live deployment was performed. Preserve other existing production indexes when deploying. Customer listing needs the ownerUid/createdAt composite index and will work after it finishes building.
+- Storage rules read reserved requests from the default Firestore database; ensure the client project uses `(default)` and enable the Firebase Storage service agent's Firestore access when deploying cross-service rules. Ensure the Storage bucket is provisioned and the server credential can read/write it and sign short-lived download URLs. Downloads require owner/admin authorization and a Clean scan, then receive a 60-second attachment URL.
+- These uploads require Firebase Storage billing/account setup for the client's project. Provision the scanner and verify deployment network connectivity before launch. Test a clean file, a standard EICAR test fixture, scanner downtime, owner isolation, quote acceptance and customer replies against staging. Protocol tests use a local simulated daemon; they do not verify a deployed antivirus engine.
+- Operational cleanup: remove files and records for abandoned Uploading requests older than 48 hours, plus unwanted cancelled drafts, through a privileged scheduled job. Check state again transactionally before deleting; do not apply a blanket bucket lifecycle to active/completed samples. Configure TTL on `customAgreementLimits.expiresAt` for account counters. Agree a retention period for completed requests with the client before launch. Cleanup scheduling and production retention policy are not configured by this local implementation.
+
+Local validation: 68 application tests and 11 Firebase rules emulator tests pass, including request isolation, forged metadata, immutable uploads, server-controlled transitions, quote acceptance, clarification persistence, scan gating and simulated ClamAV protocol results. ESLint and TypeScript pass. The isolated standalone build and HTTP checks passed: both new pages returned 200 and all unauthenticated custom-request/download routes returned 401. Real Firebase login/uploads, signed download URLs and a deployed antivirus engine still need staging verification; no production customer data or live accounts were modified.
+
+References: [Firebase Admin Storage](https://firebase.google.com/docs/storage/admin/start), [ClamAV scanner setup](https://docs.clamav.net/manual/Usage/Scanning.html), [serverless payload limits](https://vercel.com/docs/functions/limitations).
+
+## Earlier recheck fixes
 
 - Enquiries now use the server Admin SDK. Deploy the updated Firestore rules together with the application: client creation of enquiries is denied. The server transaction atomically writes the enquiry and shared counters (3 per phone per hour, 30 total per minute, and a one-minute identical-message guard). The limiter collection is private. Enable Firestore TTL on `enquiryLimits.expiresAt` to clean up expired phone counters; the global counter is one rolling document.
 - Package minimums include fixed courier charges, so the itemized sum cannot exceed the total. Existing admin prices below these minimums need correction before checkout resumes.

@@ -65,6 +65,8 @@ export const Header: React.FC<HeaderProps> = ({ onStartAgreement }) => {
   ];
 
   const exploreLinks = [
+    { label: 'Custom Agreement', href: '/custom-agreement' },
+    { label: 'My Requests', href: '/my-requests' },
     { label: t.nav.faq, href: '/faq' },
     { label: t.nav.contact, href: '/contact' },
     { label: t.nav.trackOrder, href: '/track' },
